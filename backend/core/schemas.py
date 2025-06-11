@@ -19,9 +19,9 @@ class SeasonsTable(BaseModel):
     animeId: int
     seasonNumber: int = Field(..., description="The sequential number of the season for that anime (e.g., 1, 2, 3)")
     seasonName: Optional[str] = Field(None, examples=["Demon Slayer: Kimetsu no Yaiba(Season 1)", "Dandadan season 2"])
-    season_info : str = Field(None, max_length=255)
-    season_trailer: Optional[HttpUrl]
-    season_image : Optional[HttpUrl]
+    seasonInfo : str = Field(None, max_length=255)
+    seasonTrailer: Optional[HttpUrl]
+    seasonImage : Optional[HttpUrl]
 
 class AnimeTable(BaseModel):
     animeId: int
@@ -29,9 +29,9 @@ class AnimeTable(BaseModel):
     genres: List[int] = Field([])
     is_adult_rated: bool
     is_running: bool
-    release_date: datetime
+    releaseDate: datetime
     seasons: List[int] = Field([])
-    description: Optional[str] = None
+    description: Optional[str] = Field(None, max_length=500, description="Description of the anime")
     image_url_base_anime: Optional[HttpUrl] = None
     trailer_url_base_anime: Optional[HttpUrl] = None
     studio: Optional[str] = None
@@ -51,10 +51,10 @@ class UsersTable(BaseModel):
     userId: int
     userName: str = Field(..., min_length=8, max_length=32)
     email: EmailStr
-    hashed_password: str
+    hashedPassword: str
     profilePicture: Optional[HttpUrl]
-    watched_anime: List[int] = Field([])
-    watching_anime: List[int] = Field([])
+    watchedAnime: List[int] = Field([])
+    watchingAnime: List[int] = Field([])
     anime_watched_count: int = 0
     anime_watching_count: int = 0
     model_config = ConfigDict(from_attributes=True)
@@ -67,7 +67,7 @@ class AnimeCreate(BaseModel):
     genreIds: List[int] = Field([])
     is_adult_rated: bool = False
     is_running: bool = True
-    release_date: datetime
+    releaseDate: datetime
     seasons : List[int] = []
     description: Optional[str] = Field(None, max_length=500)
     image_url_base_anime: Optional[HttpUrl] = None
@@ -82,7 +82,7 @@ class AnimeGet(BaseModel):
     seasons: List[SeasonsTable]
     is_adult_rated: bool = False
     is_running: bool = True
-    release_date: datetime
+    releaseDate: datetime
     description: Optional[str] = Field(None, max_length=500)
     image_url_base_anime: Optional[HttpUrl] = None
     trailer_url_base_anime: Optional[HttpUrl] = None
@@ -107,8 +107,8 @@ class UserDashBoard(BaseModel):
     userName: str
     location: LocationTable
     profilePicture: Optional[HttpUrl]
-    watched_anime: List[AnimeListForUser] = Field([])
-    watching_anime: List[AnimeListForUser] = Field([])
+    watchedAnime: List[AnimeListForUser] = Field([])
+    watchingAnime: List[AnimeListForUser] = Field([])
     anime_watched_count: int = 0
     anime_watching_count: int = 0
     model_config = ConfigDict(from_attributes=True)
@@ -118,14 +118,14 @@ class RatingCreateModel(BaseModel):
     userId: int
     animeId: int
     score: int = Field(..., ge=1, le=10)
-    review_text: Optional[str] = Field(None, max_length=1000)
+    reviewText: Optional[str] = Field(None, max_length=1000)
 
 #Returns the user rating for a specific anime
 class userRatingforAnime(BaseModel):
     userName: str
     animeName: str
     score: int = Field(..., ge=1, le=10)
-    review_text: Optional[str] = Field(None, max_length=1000)
+    reviewText: Optional[str] = Field(None, max_length=1000)
 
 class UserForRatingResponse(BaseModel):
     userId: int
@@ -138,7 +138,7 @@ class RatingDetailResponse(BaseModel):
     user: UserForRatingResponse
     anime: AnimeListForUser    # Reuse AnimeListForUser for simplified anime info
     score: int = Field(..., ge=1, le=10)
-    review_text: Optional[str] = Field(None, max_length=1000)
+    reviewText: Optional[str] = Field(None, max_length=1000)
     created_at: datetime
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
