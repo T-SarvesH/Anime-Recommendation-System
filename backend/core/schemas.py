@@ -113,6 +113,13 @@ class UserDashBoard(BaseModel):
     anime_watching_count: int = 0
     model_config = ConfigDict(from_attributes=True)
 
+class UserInfo(BaseModel):
+    userName: str
+    watchedAnime: List[AnimeListForUser]
+    watchingAnime: List[AnimeListForUser]
+    anime_watched_count: int = 0
+    anime_watching_count: int = 0
+
 #A rating created by the user
 class RatingCreateModel(BaseModel):
     userId: int
