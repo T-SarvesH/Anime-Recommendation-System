@@ -1,25 +1,17 @@
-//Home page of Website
-
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import reactLogo from './assets/react.svg'
+import viteLogo from '/vite.svg'
 import './App.css'
-import axios from 'axios'
+import LoginPage from './pages/LoginPage'
 
 function App() {
-  const [msg, setMsg] = useState('')
-
-  useEffect(() => {
-
-    axios.get('http://localhost:8001')
-    .then(res => setMsg(res.data.message))
-    .catch(err => console.log(err))
-  }, []);
-
+  const [count, setCount] = useState(0)
 
   return (
-    <div class="text-2xl p-6 text-blue-600 font-semibold">
+    
+    <div className="">
 
-      <p>FastAPI's message is {msg} </p>
-
+      <LoginPage/>
     </div>
   )
 }
