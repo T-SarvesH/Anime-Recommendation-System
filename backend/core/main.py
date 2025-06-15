@@ -1,9 +1,10 @@
 from fastapi import FastAPI, Query, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
-from database import get_db
+from .database import get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import *
-import models, schemas
+from .models import *
+from .schemas import *
 
 #Testing if application is working
 app = FastAPI(
@@ -17,15 +18,16 @@ app = FastAPI(
 
 origins = [
 
-    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
 ]
 
 app.add_middleware(
 
     CORSMiddleware,
     allow_origins=origins,
-    allowed_methods = ["*"],
-    allowed_headers = ["*"],
+    allow_methods = ["*"],
+    allow_headers = ["*"],
 )
 
 #Writing the core 5-6 API's and connecting them to frontend as well
@@ -35,9 +37,9 @@ def root():
     return {"message": "Welcome to Anime Recommendation system by Sarvesh. Pls login or sign up if ur a new user"}
 
 #Return user info
-@app.get("/u/{user_id}", response_model=schemas.UserInfo, status_code=status.HTTP_200_OK)
+@app.get("/u/{user_id}", response_model=UserInfo, status_code=status.HTTP_200_OK)
 async def get_user_info(user_id: int, db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(models.User).filter(models.User.userId == user_id))
+    result = await db.execute(select(User).filter(User.userId == user_id))
     user = result.scalars().first()
 
     if user is None:
@@ -46,11 +48,11 @@ async def get_user_info(user_id: int, db: AsyncSession = Depends(get_db)):
     watched_ids = user.watchedAnime
     watching_ids = user.watchingAnime
 
-    watched_anime_list = await db.execute(select(models.Anime).where(models.Anime.animeId.in_(watched_ids))).scalars().all()
-    watching_anime_list = await db.execute(select(models.Anime).where(models.Anime.animeId.in_(watching_ids))).scalars().all()
+    watched_anime_list = await db.execute(select(Anime).where(Anime.animeId.in_(watched_ids))).scalars().all()
+    watching_anime_list = await db.execute(select(Anime).where(Anime.animeId.in_(watching_ids))).scalars().all()
     
 
-    userInfobj = schemas.UserInfo(
+    userInfobj = UserInfo(
 
         userName = user.userName ,
         watchedAnime = watched_anime_list,  
@@ -63,24 +65,24 @@ async def get_user_info(user_id: int, db: AsyncSession = Depends(get_db)):
     
 
 #Return specific anime Info
-@app.get("/anime/{anime_name}", response_model=schemas.AnimeGet, status_code=status.HTTP_200_OK)
+@app.get("/anime/{anime_name}", response_model=AnimeGet, status_code=status.HTTP_200_OK)
 async def get_anime_info(anime_name: str, db: AsyncSession = Depends(get_db)):
     
-    proc = await db.execute(select(models.Anime).where(models.Anime.animeName == anime_name))
+    proc = await db.execute(select(Anime).where(Anime.animeName == anime_name))
     query_result = proc.scalars().first()
     
     if query_result is None: 
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Anime {anime_name} not found")
 
     genre_ids = query_result.genres
-    genre_list = await db.execute(select(models.Genre.name).where(models.Genre.id.in_(genre_ids)))
+    genre_list = await db.execute(select(Genre.name).where(Genre.id.in_(genre_ids)))
     genre_list = genre_list.scalars().all()
 
     season_nos = query_result.seasons
-    season_list = await db.execute(select(models.Season).where(models.Season.seasonNumber.in_(season_nos)))
+    season_list = await db.execute(select(Season).where(Season.seasonNumber.in_(season_nos)))
     season_list = season_list.scalars().all()
 
-    animeGetObj = schemas.AnimeGet(
+    animeGetObj = AnimeGet(
 
         animeId = query_result.animeId,
         animeName = query_result.animeName,
