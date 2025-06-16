@@ -24,7 +24,7 @@ target_metadata = Base.metadata
 
 def run_migrations_offline():
     # ... (no change here) ...
-    url = os.getenv("DATABASE_URL")
+    url = os.getenv("DATABASE_URL_FOR_FASTAPI")
     context.configure(
         url=url,
         target_metadata=target_metadata,

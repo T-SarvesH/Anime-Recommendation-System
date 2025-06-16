@@ -13,13 +13,9 @@ class Location(Base):
     city = Column(String(100))
     state = Column(String(100))
 
-class Genre(Base):
-    __tablename__ = "genres"
-    genreId = Column(Integer, primary_key=True, index=True)
-    name = Column(String(100), nullable=False, unique=True)
-
 class Season(Base):
     __tablename__ = "seasons"
+    id = Column(Integer, primary_key=True)
     animeId = Column(Integer, ForeignKey("anime.animeId"), nullable=False)
     seasonNumber = Column(Integer, nullable=False) # The sequential season number
     seasonName = Column(String(255))
@@ -29,11 +25,17 @@ class Season(Base):
 
     # Define composite primary key using PrimaryKeyConstraint
     __table_args__ = (
-        PrimaryKeyConstraint('animeId', 'seasonNumber', name='pk_season'),
+        UniqueConstraint('animeId', 'seasonNumber', name='uq_anime_season'),
     )
 
     # Relationship to Anime model
     anime = relationship("Anime", back_populates="seasons_data")
+
+class Genre(Base):
+    __tablename__ = "genres"
+    genreId = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False, unique=True)
+
 
 class Anime(Base):
     __tablename__ = "anime"
