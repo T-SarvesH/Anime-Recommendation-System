@@ -7,7 +7,7 @@ from sqlalchemy.ext.declarative import declarative_base
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = os.getenv("DATABASE_URL_FOR_FASTAPI")
 
 if not DATABASE_URL:
     raise ValueError("DATABASE_URL is not set")
