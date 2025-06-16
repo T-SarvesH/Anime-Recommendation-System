@@ -19,7 +19,8 @@ class Locations(models.Model):
     class Meta:
         managed = False
         db_table = 'locations'
-
+    def __str__(self):
+        return f"{self.locationid}"
 
 class Users(models.Model):
     userid = models.AutoField(db_column='userId', primary_key=True)
@@ -37,6 +38,8 @@ class Users(models.Model):
     class Meta:
         managed = False
         db_table = 'users'
+    def __str__(self):
+        return f"{self.userid}"
 
 
 class Anime(models.Model):
@@ -57,6 +60,9 @@ class Anime(models.Model):
     class Meta:
         managed = False
         db_table = 'anime'
+    
+    def __str__(self):
+        return f"{self.animeid}"
 
 
 class Genres(models.Model):
@@ -66,6 +72,9 @@ class Genres(models.Model):
     class Meta:
         managed = False
         db_table = 'genres'
+    
+    def __str__(self):
+        return f"{self.genreid}"
 
 
 class Ratings(models.Model):
@@ -80,11 +89,14 @@ class Ratings(models.Model):
     class Meta:
         managed = False
         db_table = 'ratings'
+    
+    def __str__(self):
+        return f"{self.ratingid}"
 
 class Seasons(models.Model):
-    # Removed: pk = models.CompositePrimaryKey('animeId', 'seasonNumber')
+    id = models.AutoField(db_column='id', primary_key=True)
     animeid = models.ForeignKey('Anime', models.DO_NOTHING, db_column='animeId', related_name='related_seasons')
-    seasonnumber = models.IntegerField(db_column='seasonNumber', primary_key=True) # <-- THIS MUST BE HERE
+    seasonnumber = models.IntegerField(db_column='seasonNumber') # <-- THIS MUST BE HERE
     seasonname = models.CharField(db_column='seasonName', max_length=255, blank=True, null=True)
     seasoninfo = models.CharField(db_column='seasonInfo', max_length=255, blank=True, null=True)
     seasontrailer = models.CharField(db_column='seasonTrailer', blank=True, null=True, max_length=500)
