@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import *
 from .models import *
 from .schemas import *
+from utils import password_verifier, argon2_pwd_hasher
 
 #Testing if application is working
 app = FastAPI(
@@ -110,16 +111,72 @@ def get_topn(count: int):
     pass
 
 #Returns the top rated anime
-@app.get("/anime/top-rated")
-def get_user_info(userId: int ):
-    pass
+@app.get("/anime/top-rated", status_code=status.HTTP_200_OK)
+async def get_top_rated(db: AsyncSession = Depends(get_db)) -> dict:
+    
+    """ The top rated anime would be decided by a custom rating system
+    built on the ratings flagged as positive and not positive
 
-#Return user info
-@app.get("/{userId}")
-def get_user_info(userId: int ):
-    pass
+    The Rating system would work on the ratio of positive to the total scores
+    where positive score > 5
 
+    Hencee the anime having this ratio as highest, would be flagged as top rated
+    """
 
-#For admin side ApiS
+    sql_query_text = "SELECT animeId, animeName, COUNT(CASE WHEN score > 5 THEN 1 ELSE NULL END) * 100.0 / COUNT(score) AS ratio from anime join ratings using(animeId) group by animeId having count(score) > 0 order by ratio desc limit 1;"
+
+    proc = await db.execute(text(sql_query_text))
+    result = proc.scalars().first()
+
+    if result is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Anime not found")
+    
+
+    dict = {
+
+        "animeName" : result.animeName,
+        "releaseDate": result.releaseDate,
+        "image_url_base_anime": result.image_url_base_anime,
+        "Positivity Percentage": result.ratio
+    }
+
+    return dict
+
+#Adding a new user on the site
+@app.post("/signup", status_code=status.HTTP_200_OK)
+async def get_user_info(user: UserBasicCreate, db: AsyncSession = Depends(get_db)):
+    
+    #After filling the form the user details from frontend are sent here
+    if await db.execute(select(User).where(user.userName == User.userName)).scalars.first() is not None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"{user.userName} already exists so please create a different user name")
+    
+    if await db.execute(select(User).where(user.email == User.email)).scalars.first() is not None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"{user.email} is already tied to a username so use a different email for signup")
+    
+    hashed_password = argon2_pwd_hasher(user.password)
+
+    user = User(
+
+        userId = "",
+        userName = user.userName, 
+        email = "", 
+        locationId = "",
+        watchedAnime = [],
+        watchingAnime = [],
+        anime_watched_count = 0,
+        anime_watching_count = 0,
+        profilePicture = ""
+    )
+
+    try:
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Due to error: {e} caused hence the new user was not created hence please try again")
+    
+    return {"message": f"User {user.userName} created successfully and welcome to this Anime Recommendation system"}
+
+#For admin side APIs
 
 #Recommendation model APIs
