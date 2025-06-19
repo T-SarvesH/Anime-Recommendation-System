@@ -40,6 +40,7 @@ MarkupSafe==3.0.2
 marshmallow==4.0.0
 matplotlib==3.10.3
 mdurl==0.1.2
+mlxtend==0.23.4
 numpy==2.2.6
 orjson==3.10.18
 packaging==25.0
