@@ -63,12 +63,6 @@ def collaborative_recommender(user_id, ratings_df, anime_df, number_of_recommend
     recommendations_sorted = recommendation_scores.sort_values(ascending=False)
     top_n_recommended_anime_ids = recommendations_sorted.head(number_of_recommendations).index.tolist()
 
-    recommended_anime_names = [anime_df[anime_df['animeId'] == aid]['animeName'].iloc[0] for aid in top_n_recommended_anime_ids if aid in anime_df['animeId'].values]
-
-    print(f"Top {len(recommended_anime_names)} Item-Based CF recommendations for User {user_id}:")
-    for i, name in enumerate(recommended_anime_names):
-        print(f"{i+1}. {name}")
-
-    return recommended_anime_names
+    return top_n_recommended_anime_ids
 
 

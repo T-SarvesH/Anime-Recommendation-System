@@ -6,6 +6,8 @@ from sqlalchemy import *
 from .models import *
 from .schemas import *
 from utils import password_verifier, argon2_pwd_hasher
+from dotenv import load_dotenv
+import os
 
 #Testing if application is working
 app = FastAPI(
@@ -102,13 +104,21 @@ async def get_anime_info(anime_name: str, db: AsyncSession = Depends(get_db)):
 
 #Return the newest 5 animes as default
 @app.get("/anime/newest-5")
-def get_top5(newest: int = 5):
-    pass
+async def get_top_5(db: AsyncSession = Depends(get_db)):
+    
+    query = "SELECT * FROM anime ORDER BY releaseDate DESC LIMIT 5"
+    result = await db.execute(text(query))
+
+    return result.scalars().all()
 
 #Return the newest n animes as default
 @app.get("/anime/newest/{count}")
-def get_topn(count: int):
-    pass
+async def get_topn(count: int, db: AsyncSession = Depends(get_db)):
+    
+    query = await db.execute(select(Anime).order_by(Anime.releaseDate.desc()).limit(count))
+    result = query.scalars().all()
+
+    return result
 
 #Returns the top rated anime
 @app.get("/anime/top-rated", status_code=status.HTTP_200_OK)
@@ -177,6 +187,28 @@ async def get_user_info(user: UserBasicCreate, db: AsyncSession = Depends(get_db
     
     return {"message": f"User {user.userName} created successfully and welcome to this Anime Recommendation system"}
 
-#For admin side APIs
+#Recommendation model output to be displayed on the recommendation dashboard
+@app.get("/{user_id}/recommendation_dashboard")
+async def recommendations(user_id: int, db: AsyncSession = Depends(get_db)):
+    pass
 
-#Recommendation model APIs
+#For admin side APIs where ADMIN_ID is fetched from env to prevent unauthorized access
+load_dotenv()
+ADMIN_ID = os.environ.get("ADMIN_ID")
+
+@app.post("/add_anime/{anime}", status_code=status.HTTP_200_OK)
+async def add_anime(anime: AnimeCreate, user_id: int = 8, db: AsyncSession = Depends(get_db)):
+    
+    if user_id != ADMIN_ID:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail=f"User is prohibited from doing this action")
+
+    pass
+
+#To add new genres
+@app.post("/add_genre/{genre}", status_code=status.HTTP_200_OK)
+async def add_anime(genre: genreCreate, user_id: int = 8, db: AsyncSession = Depends(get_db)):
+    
+    if user_id != ADMIN_ID:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail=f"User is prohibited from doing this action")
+
+    pass

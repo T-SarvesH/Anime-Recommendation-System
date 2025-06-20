@@ -156,4 +156,8 @@ class userRatingAll(BaseModel):
     ratings: List[RatingDetailResponse]
     model_config = ConfigDict(from_attributes=True)
 
+class genreCreate(BaseModel):
+    genreId: int
+    name: str = Field(..., max_length=100)
+
 # ------------- END OF MODELS FOR 1st VERSION ------------

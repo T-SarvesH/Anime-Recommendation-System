@@ -65,11 +65,5 @@ def association_recommender(user_id, users_df, anime_df, number_of_recommendatio
         
     final_recommendation = list(recommended_animeIds)[:number_of_recommendations]
 
-    recommended_anime_names = anime_df[anime_df['animeId'].isin(final_recommendation)]['animeName'].tolist()
-
-    print(f"Top {len(recommended_anime_names)} Association Rule recommendations for User {user_id}:")
-    for i, name in enumerate(recommended_anime_names):
-        print(f"{i+1}. {name}")
-
-    return recommended_anime_names
+    return final_recommendation
 

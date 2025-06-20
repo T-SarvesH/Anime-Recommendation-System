@@ -11,7 +11,7 @@ from Recommendation3 import content_based_recommender
 
 """ Start of the main ML Model """
 
-if __name__ == "__main__":
+def main_recommendation_model():
 
     ratings, anime, users, locations, genres, seasons = load_data()
     
@@ -27,7 +27,9 @@ if __name__ == "__main__":
     user_id = 1
     recom1 = collaborative_recommender(user_id, ratings, processed_anime_df, 5)
     recom2 = association_recommender(user_id, processed_users_df, processed_anime_df, 5)
-    recom3 = content_based_recommender()
+    recom3 = content_based_recommender(user_id, processed_anime_df, ratings, 5)
+
+    return [recom1, recom2, recom3]
 
 
 
