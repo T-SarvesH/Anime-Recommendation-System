@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import *
 from .models import *
 from .schemas import *
-from utils import password_verifier, argon2_pwd_hasher
+from .utils import password_verifier, argon2_pwd_hasher
 from dotenv import load_dotenv
 import os
 
@@ -196,7 +196,7 @@ async def recommendations(user_id: int, db: AsyncSession = Depends(get_db)):
 load_dotenv()
 ADMIN_ID = os.environ.get("ADMIN_ID")
 
-@app.post("/add_anime/{anime}", status_code=status.HTTP_200_OK)
+@app.post("/add_anime", status_code=status.HTTP_200_OK)
 async def add_anime(anime: AnimeCreate, user_id: int = 8, db: AsyncSession = Depends(get_db)):
     
     if user_id != ADMIN_ID:
@@ -205,7 +205,7 @@ async def add_anime(anime: AnimeCreate, user_id: int = 8, db: AsyncSession = Dep
     pass
 
 #To add new genres
-@app.post("/add_genre/{genre}", status_code=status.HTTP_200_OK)
+@app.post("/add_genre", status_code=status.HTTP_200_OK)
 async def add_anime(genre: genreCreate, user_id: int = 8, db: AsyncSession = Depends(get_db)):
     
     if user_id != ADMIN_ID:

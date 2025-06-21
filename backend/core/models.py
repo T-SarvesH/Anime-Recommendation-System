@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, A
 from sqlalchemy.orm import relationship
 from sqlalchemy.schema import PrimaryKeyConstraint # For composite primary keys
 from datetime import datetime
-from database import Base
+from .database import Base
 
 # --- Database Models (SQLAlchemy ORM) ---
 
