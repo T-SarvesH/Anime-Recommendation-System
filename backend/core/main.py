@@ -33,14 +33,14 @@ app.add_middleware(
     allow_headers = ["*"],
 )
 
-#Writing the core 5-6 API's and connecting them to frontend as well
+"""User APIs are declared here """
 
 @app.get("/")
 def root():
     return {"message": "Welcome to Anime Recommendation system by Sarvesh. Pls login or sign up if ur a new user"}
 
 #Return user info
-@app.get("/u/{user_id}", response_model=UserInfo, status_code=status.HTTP_200_OK)
+@app.get("/user/{user_id}", response_model=UserInfo, status_code=status.HTTP_200_OK)
 async def get_user_info(user_id: int, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(User).filter(User.userId == user_id))
     user = result.scalars().first()
@@ -66,7 +66,7 @@ async def get_user_info(user_id: int, db: AsyncSession = Depends(get_db)):
 
     return userInfobj
     
-
+""" Anime APIs are declared here """
 #Return specific anime Info
 @app.get("/anime/{anime_name}", response_model=AnimeGet, status_code=status.HTTP_200_OK)
 async def get_anime_info(anime_name: str, db: AsyncSession = Depends(get_db)):
