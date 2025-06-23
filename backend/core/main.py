@@ -8,6 +8,7 @@ from .schemas import *
 from .utils import password_verifier, argon2_pwd_hasher
 from dotenv import load_dotenv
 import os
+import json
 
 #Testing if application is working
 app = FastAPI(
@@ -212,3 +213,52 @@ async def add_anime(genre: genreCreate, user_id: int = 8, db: AsyncSession = Dep
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail=f"User is prohibited from doing this action")
 
     pass
+
+# @app.get("/add_locations", status_code=status.HTTP_200_OK)
+# async def add_locations(db: AsyncSession = Depends(get_db)):
+    
+#     print("add_locations triggered")
+#     path = "/home/sarvesh/Anime-Recommendation-System/backend/core/places.json"
+
+#     with open(path, 'r') as p:
+
+#         places = json.load(p)
+
+#     Dict = {}
+#     locations_to_add = []
+
+#     i = 6
+#     for place in places:
+#         place = dict(place)
+#         Dict[place['id']] = place
+        
+#     for country in Dict.values():
+
+#         if country['name'] == 'India':
+#             countryName = country['name']
+
+#             for states in country['states']:
+#                 stateName = states['name']
+
+#                 for cities in states['cities']:
+                        
+#                     if cities['name'] == 'Mumbai':
+#                         continue
+#                     else:
+#                         cityName = cities['name']
+
+#                         locationObj = Location(
+
+#                             locationId = i,
+#                             country = countryName,
+#                             city = cityName,
+#                             state = stateName
+#                         )
+
+#                         locations_to_add.append(locationObj)
+#                         i+=1
+
+#     db.add_all(locations_to_add)
+#     await db.commit()
+
+#     return {'message': 'Locations added successfully'}                       
