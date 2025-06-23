@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://127.0.0.1:8000'; // Make sure this matches your FastAPI server
+const API_BASE_URL = 'http://127.0.0.1:8001'; // Make sure this matches your FastAPI server
 
 async function fetchData(url, options = {}) {
   try {
@@ -133,3 +133,19 @@ export const getAnimeWithFilters = async ({ userId = null, genreId = null }) => 
 
   return fetchData(url);
 };
+
+//Get Cities for the state
+export const getCities = async(stateName) =>{
+
+  return fetchData(`${API_BASE_URL}/get_cities/${stateName}`);
+}
+
+export const getStates = async(countryName) => {
+
+  return fetchData(`${API_BASE_URL}/get_states/${countryName}`);
+}
+
+export const getCountries = async() => {
+
+  return fetchData(`${API_BASE_URL}/get_countries`);
+}

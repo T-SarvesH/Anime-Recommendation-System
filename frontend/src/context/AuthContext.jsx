@@ -6,7 +6,7 @@ export const AuthProvider = ({ children }) => {
   const [userId, setUserId] = useState(null);
   const [username, setUsername] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
-
+  const adminId = -2147483648
   // Load user data from localStorage on initial load
   useEffect(() => {
     const storedUserId = localStorage.getItem('userId');
@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('userId', id);
     localStorage.setItem('username', name);
     // Assuming admin user ID is 1. Adjust as needed.
-    if (id === 1) { 
+    if (id == adminId) { 
       setIsAdmin(true);
       localStorage.setItem('isAdmin', 'true');
     } else {

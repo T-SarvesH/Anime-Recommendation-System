@@ -22,6 +22,7 @@ app = FastAPI(
 
 origins = [
 
+    "https://localhost",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
 ]
@@ -30,9 +31,13 @@ app.add_middleware(
 
     CORSMiddleware,
     allow_origins=origins,
+    allow_credentials = True,
     allow_methods = ["*"],
     allow_headers = ["*"],
 )
+
+load_dotenv()
+ADMIN_ID = os.environ.get("ADMIN_ID")
 
 """User APIs are declared here """
 
@@ -158,20 +163,23 @@ async def get_top_rated(db: AsyncSession = Depends(get_db)) -> dict:
 async def get_user_info(user: UserBasicCreate, db: AsyncSession = Depends(get_db)):
     
     #After filling the form the user details from frontend are sent here
-    if await db.execute(select(User).where(user.userName == User.userName)).scalars.first() is not None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"{user.userName} already exists so please create a different user name")
+    # if await db.execute(select(User).where(user.userName == User.userName)).scalars().first() is not None:
+    #     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"{user.userName} already exists so please create a different user name")
     
-    if await db.execute(select(User).where(user.email == User.email)).scalars.first() is not None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"{user.email} is already tied to a username so use a different email for signup")
+    # if await db.execute(select(User).where(user.email == User.email)).scalars().first() is not None:
+    #     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"{user.email} is already tied to a username so use a different email for signup")
     
     hashed_password = argon2_pwd_hasher(user.password)
-
+    
+    query = await db.execute(select(Location).where(Location.city == user.city).where(Location.state == user.state).where(Location.country == user.country))
+    result = query.scalars().first()
     user = User(
 
-        userId = "",
+        userId = -1,
         userName = user.userName, 
-        email = "", 
-        locationId = "",
+        hashedPassword = hashed_password,
+        email = user.email, 
+        locationId = result.locationId,
         watchedAnime = [],
         watchingAnime = [],
         anime_watched_count = 0,
@@ -194,9 +202,6 @@ async def recommendations(user_id: int, db: AsyncSession = Depends(get_db)):
     pass
 
 #For admin side APIs where ADMIN_ID is fetched from env to prevent unauthorized access
-load_dotenv()
-ADMIN_ID = os.environ.get("ADMIN_ID")
-
 @app.post("/add_anime", status_code=status.HTTP_200_OK)
 async def add_anime(anime: AnimeCreate, user_id: int = 8, db: AsyncSession = Depends(get_db)):
     
@@ -214,51 +219,34 @@ async def add_anime(genre: genreCreate, user_id: int = 8, db: AsyncSession = Dep
 
     pass
 
-# @app.get("/add_locations", status_code=status.HTTP_200_OK)
-# async def add_locations(db: AsyncSession = Depends(get_db)):
+@app.get('/get_cities/{stateName}')
+async def get_cities(stateName: str, db: AsyncSession = Depends(get_db)):
+
+    query = await db.execute(select(distinct(Location.city)).where(Location.state == stateName).order_by(Location.city))
+    results = query.scalars().all()
+
+    return results
+
+@app.get('/get_states/{countryName}')
+async def get_states(countryName: str, db: AsyncSession = Depends(get_db)):
     
-#     print("add_locations triggered")
-#     path = "/home/sarvesh/Anime-Recommendation-System/backend/core/places.json"
+    result = await db.execute(
+            select(distinct(Location.state))
+            .filter(Location.country.ilike(countryName)) # Safe, parameterized query
+            .order_by(Location.state) # Good for consistent dropdown order
+        )
+    states = result.scalars().all() # .scalars() extracts the first column of each row (the state name)
 
-#     with open(path, 'r') as p:
+    if not states:
+            
+        print(f"No states found for country: {countryName}")
+        return [] 
 
-#         places = json.load(p)
+    print(f"Found states for {countryName}: {states}")
+    return states
 
-#     Dict = {}
-#     locations_to_add = []
+@app.get('/get_countries')
+async def get_states(db: AsyncSession = Depends(get_db)):
 
-#     i = 6
-#     for place in places:
-#         place = dict(place)
-#         Dict[place['id']] = place
-        
-#     for country in Dict.values():
-
-#         if country['name'] == 'India':
-#             countryName = country['name']
-
-#             for states in country['states']:
-#                 stateName = states['name']
-
-#                 for cities in states['cities']:
-                        
-#                     if cities['name'] == 'Mumbai':
-#                         continue
-#                     else:
-#                         cityName = cities['name']
-
-#                         locationObj = Location(
-
-#                             locationId = i,
-#                             country = countryName,
-#                             city = cityName,
-#                             state = stateName
-#                         )
-
-#                         locations_to_add.append(locationObj)
-#                         i+=1
-
-#     db.add_all(locations_to_add)
-#     await db.commit()
-
-#     return {'message': 'Locations added successfully'}                       
+    return ["India"]
+    
