@@ -30,6 +30,7 @@ export const getAllAnime = async () => {
   return fetchData(`${API_BASE_URL}/anime/all`);
 };
 
+
 export const getAnimeDetails = async (animeName) => {
   return fetchData(`${API_BASE_URL}/anime/${encodeURIComponent(animeName)}`);
 };
@@ -115,11 +116,11 @@ export const rateAnime = async (ratingData) => {
 };
 
 export const getAllGenres = async () => {
-    return fetchData(`${API_BASE_URL}/genres`);
+    return fetchData(`${API_BASE_URL}/genres/all`);
 };
 
 export const getAllSeasons = async () => {
-    return fetchData(`${API_BASE_URL}/seasons`);
+    return fetchData(`${API_BASE_URL}/seasons/all`);
 };
 
 // UPDATED: Simplified getAnimeWithFilters to only include genre filter for now

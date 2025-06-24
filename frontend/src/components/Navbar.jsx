@@ -15,7 +15,7 @@ function Navbar() {
           <Link to="/" className="text-anime-text-light hover:text-anime-accent-dark transition duration-200">
             Recommendations
           </Link>
-          <Link to="/browse" className="text-anime-text-light hover:text-anime-accent-dark transition duration-200">
+          <Link to="/all-anime" className="text-anime-text-light hover:text-anime-accent-dark transition duration-200">
             Browse Anime
           </Link>
           {isAdmin && (

@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import *
 from .models import *
 from .schemas import *
-from .utils import password_verifier, argon2_pwd_hasher
+from .utils import password_verifier, argon2_pwd_hasher, generate_uuid
 from dotenv import load_dotenv
 import os
 import json
@@ -186,20 +186,19 @@ async def get_anime_info(anime_name: str, db: AsyncSession = Depends(get_db)):
 @app.post("/signup", status_code=status.HTTP_200_OK)
 async def get_user_info(user: UserBasicCreate, db: AsyncSession = Depends(get_db)):
     
-    #After filling the form the user details from frontend are sent here
-    # if await db.execute(select(User).where(user.userName == User.userName)).scalars().first() is not None:
-    #     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"{user.userName} already exists so please create a different user name")
-    
-    # if await db.execute(select(User).where(user.email == User.email)).scalars().first() is not None:
-    #     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"{user.email} is already tied to a username so use a different email for signup")
-    
     hashed_password = argon2_pwd_hasher(user.password)
     
     query = await db.execute(select(Location).where(Location.city == user.city).where(Location.state == user.state).where(Location.country == user.country))
     result = query.scalars().first()
+
+    query2 = await db.execute(select(User.userId))
+    result2 = query2.scalars().all()
+
+    id_uuid = generate_uuid(result2)
+
     user = User(
 
-        userId = -1,
+        userId = id_uuid,
         userName = user.userName, 
         hashedPassword = hashed_password,
         email = user.email, 
@@ -241,13 +240,29 @@ async def recommendations(user_id: int, db: AsyncSession = Depends(get_db)):
     pass
 
 #For admin side APIs where ADMIN_ID is fetched from env to prevent unauthorized access
-@app.post("/add_anime", status_code=status.HTTP_200_OK)
-async def add_anime(anime: AnimeCreate, user_id: int = 8, db: AsyncSession = Depends(get_db)):
-    
-    if user_id != ADMIN_ID:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail=f"User is prohibited from doing this action")
+@app.post("/add_season", status_code=status.HTTP_200_OK)
+async def add_season(seasonData: SeasonsCreate, db: AsyncSession = Depends(get_db)):
 
-    pass
+    seasonObj = Season(
+
+        animeId = seasonData.animeId,
+        seasonNumber = seasonData.seasonNumber,
+        seasonName = seasonData.seasonName,
+        seasonInfo = seasonData.seasonInfo,
+        seasonTrailer = seasonData.seasonTrailer,
+        seasonImage = seasonData.seasonImage,
+    )
+
+    try:
+        db.add(seasonObj)
+        await db.commit()
+        await db.refresh(seasonObj)
+
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Season couldn't be added")
+    
+    return {'message': f"Season for {seasonData.animeName} added successfully"}
+    
 
 #To add new genres
 @app.post("/add_genre", status_code=status.HTTP_200_OK)
@@ -257,6 +272,25 @@ async def add_anime(genre: genreCreate, user_id: int = 8, db: AsyncSession = Dep
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,detail=f"User is prohibited from doing this action")
 
     pass
+
+#To get all genres
+@app.get('/genres/all')
+async def get_all_genres(db: AsyncSession = Depends(get_db)):
+
+    query = await db.execute(select(Genre))
+    result = query.scalars().all()
+
+    return result
+
+#To get all seasons
+@app.get('/seasons/all')
+async def get_all_genres(db: AsyncSession = Depends(get_db)):
+
+    query = await db.execute(select(Season))
+    result = query.scalars().all()
+
+    return result
+
 
 @app.get('/get_cities/{stateName}')
 async def get_cities(stateName: str, db: AsyncSession = Depends(get_db)):

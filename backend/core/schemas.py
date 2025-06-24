@@ -175,4 +175,12 @@ class browseAnime(BaseModel):
     animeName: str
     image_url_base_anime: Optional[str]
     model_config = ConfigDict(from_attributes=True)
-# ------------- END OF MODELS FOR 1st VERSION ------------
+
+class SeasonsCreate(BaseModel):
+    animeId: int
+    seasonNumber: int = Field(..., description="The sequential number of the season for that anime (e.g., 1, 2, 3)")
+    seasonName: Optional[str] = Field(None, examples=["Demon Slayer: Kimetsu no Yaiba(Season 1)", "Dandadan season 2"])
+    seasonInfo : str = Field(None, max_length=1000)
+    seasonTrailer: Optional[str]
+    seasonImage : Optional[str]
+    model_config = ConfigDict(from_attributes=True)

@@ -1,34 +1,56 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { addAnime, updateAnime, deleteAnime, getAdminCounts, addGenre, addSeason, getAllGenres, getAllSeasons } from '../api';
+import {
+  addAnime, // This function in api.js and backend must be updated for new payload
+  deleteAnime,
+  addGenre,
+  addSeason,
+  getAllGenres,
+  getAllSeasons,
+  getAllAnime,
+} from '../api';
 import { useNavigate } from 'react-router-dom';
 
 function AdminPage() {
   const { userId, isAdmin } = useAuth();
   const navigate = useNavigate();
 
-  const [formType, setFormType] = useState('add'); // 'add' or 'update'
-  const [animeIdToUpdate, setAnimeIdToUpdate] = useState('');
-  const [title, setTitle] = useState('');
-  const [genreId, setGenreId] = useState('');
-  const [seasonId, setSeasonId] = useState('');
-  const [locationId, setLocationId] = useState('');
-  const [year, setYear] = useState('');
-  const [episodes, setEpisodes] = useState('');
+  // State for Add Anime Form (UPDATED based on Anime Model)
+  const [animeName, setAnimeName] = useState(''); // Renamed from 'title'
+  const [genreId, setGenreId] = useState(''); // Still single select, sent as array
+  const [seasonId, setSeasonId] = useState(''); // Still single select, sent as array (for release season)
+  // Removed: locationId, year, episodes, origin as they are not in the provided Anime model
   const [description, setDescription] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
+  const [image_url_base_anime, setImage_url_base_anime] = useState(''); // Renamed from 'imageUrl'
+  const [releaseDate, setReleaseDate] = useState('');
+  const [studio, setStudio] = useState('');
+  const [status, setStatus] = useState(''); // Used to derive is_running
+  const [isAdultRated, setIsAdultRated] = useState(false);
+  const [trailer_url_base_anime, setTrailer_url_base_anime] = useState(''); // Renamed from 'trailerUrl'
+
+  // State for Delete Anime Form
   const [deleteAnimeId, setDeleteAnimeId] = useState('');
 
+  // State for Add Genre Form
   const [newGenreName, setNewGenreName] = useState('');
-  const [newSeasonName, setNewSeasonName] = useState('');
+
+  // State for Add New Season Form
+  const [selectedAnimeIdForSeason, setSelectedAnimeIdForSeason] = useState('');
+  const [newSeasonNumber, setNewSeasonNumber] = useState('');
+  const [newSeasonTitle, setNewSeasonTitle] = useState('');
+  const [newSeasonInfo, setNewSeasonInfo] = useState('');
+  const [newSeasonTrailer, setNewSeasonTrailer] = useState('');
+  const [newSeasonImage, setNewSeasonImage] = useState('');
+
 
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(true);
 
-  const [adminCounts, setAdminCounts] = useState(null);
   const [genres, setGenres] = useState([]);
-  const [seasons, setSeasons] = useState([]);
+  const [seasons, setSeasons] = useState([]); // These are 'Release Seasons' (e.g., Fall 2023), not anime-specific seasons
+  const [allAnime, setAllAnime] = useState([]);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -38,65 +60,81 @@ function AdminPage() {
   }, [isAdmin, navigate]);
 
   const fetchAdminData = async () => {
-    if (!userId || !isAdmin) return;
+    if (!userId || !isAdmin) {
+      setDataLoading(false);
+      return;
+    }
+    setDataLoading(true);
     try {
-      const [countsData, genresData, seasonsData] = await Promise.all([
-        getAdminCounts(userId),
+      const [genresData, seasonsData, animeListData] = await Promise.all([
         getAllGenres(),
-        getAllSeasons()
+        getAllSeasons(),
+        getAllAnime(),
       ]);
-      setAdminCounts(countsData);
       setGenres(genresData);
       setSeasons(seasonsData);
+      setAllAnime(animeListData);
     } catch (err) {
       setError(err.message || 'Failed to fetch admin data.');
+    } finally {
+      setDataLoading(false);
     }
   };
 
-  const handleAnimeSubmit = async (e) => {
+  // UPDATED: handleAddAnimeSubmit with new fields and adjusted types for model
+  const handleAddAnimeSubmit = async (e) => {
     e.preventDefault();
     setMessage('');
     setError('');
     setLoading(true);
 
+    // Map string 'status' to boolean 'is_running' as per Anime model
+    const isRunningStatus = status === "Currently Airing" || status === "On Hiatus";
+
     const animeData = {
-      title,
-      genreId: parseInt(genreId),
-      seasonId: parseInt(seasonId),
-      locationId: parseInt(locationId),
-      year: parseInt(year),
-      episodes: parseInt(episodes),
-      description,
-      image_url: imageUrl,
+      animeName: animeName, // Matches model field name
+      genres: genreId ? [parseInt(genreId)] : [], // Send as array of integers
+      is_adult_rated: isAdultRated, // Matches model field name
+      is_running: isRunningStatus, // Mapped from status string
+      releaseDate: releaseDate, // Matches model field name
+      seasons: seasonId ? [parseInt(seasonId)] : [], // Send as array of integers (for release seasons)
+      description: description, // Matches model field name
+      image_url_base_anime: image_url_base_anime, // Matches model field name
+      trailer_url_base_anime: trailer_url_base_anime, // Matches model field name
+      studio: studio, // Matches model field name
     };
 
+    // Basic validation for required fields according to your model
+    if (!animeName || !genreId || !releaseDate || !description || !studio || !status) {
+      setError('Please fill in all required anime fields: Anime Name, Genre, Release Date, Description, Studio, and Status.');
+      setLoading(false);
+      return;
+    }
+
     try {
-      if (formType === 'add') {
-        const response = await addAnime(animeData, userId);
-        setMessage(`Anime '${response.title}' added successfully!`);
-      } else {
-        const response = await updateAnime(animeIdToUpdate, animeData, userId);
-        setMessage(`Anime '${response.title}' updated successfully!`);
-      }
-      resetForm();
+      // Backend addAnime function needs to be updated to accept this comprehensive payload
+      const response = await addAnime(animeData, userId);
+      setMessage(`Anime '${response.animeName || animeName}' added successfully!`);
+      resetAddAnimeForm();
       fetchAdminData();
     } catch (err) {
-      setError(err.message || 'Operation failed.');
+      setError(err.message || 'Failed to add anime.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDeleteAnime = async (e) => {
-    e.preventDefault();
+  const handleDeleteAnime = async (animeId) => {
     setMessage('');
     setError('');
     setLoading(true);
 
     try {
-      const response = await deleteAnime(deleteAnimeId, userId);
+      const response = await deleteAnime(parseInt(animeId), userId);
       setMessage(response.message);
-      setDeleteAnimeId('');
+      if (deleteAnimeId === animeId.toString()) {
+        setDeleteAnimeId('');
+      }
       fetchAdminData();
     } catch (err) {
       setError(err.message || 'Failed to delete anime.');
@@ -127,10 +165,26 @@ function AdminPage() {
     setMessage('');
     setError('');
     setLoading(true);
+
+    const seasonData = {
+      animeId: parseInt(selectedAnimeIdForSeason),
+      seasonNumber: parseInt(newSeasonNumber),
+      seasonName: newSeasonTitle,
+      seasonInfo: newSeasonInfo,
+      seasonTrailer: newSeasonTrailer,
+      seasonImage: newSeasonImage,
+    };
+
+    if (!selectedAnimeIdForSeason || isNaN(seasonData.animeId) || !newSeasonNumber || isNaN(seasonData.seasonNumber) || !newSeasonTitle.trim()) {
+      setError('Please fill in all required season fields.');
+      setLoading(false);
+      return;
+    }
+
     try {
-      const response = await addSeason({ name: newSeasonName });
-      setMessage(response.message);
-      setNewSeasonName('');
+      const response = await addSeason(seasonData);
+      setMessage(`Season '${response.seasonName || newSeasonTitle}' for Anime ID ${response.animeId || selectedAnimeIdForSeason} added successfully!`);
+      resetAddSeasonForm();
       fetchAdminData();
     } catch (err) {
       setError(err.message || 'Failed to add season.');
@@ -139,17 +193,28 @@ function AdminPage() {
     }
   };
 
-  const resetForm = () => {
-    setAnimeIdToUpdate('');
-    setTitle('');
+  // UPDATED: resetAddAnimeForm to clear fields according to Anime model
+  const resetAddAnimeForm = () => {
+    setAnimeName('');
     setGenreId('');
     setSeasonId('');
-    setLocationId('');
-    setYear('');
-    setEpisodes('');
+    // Removed: setLocationId(''); setYear(''); setEpisodes(''); setOrigin('');
     setDescription('');
-    setImageUrl('');
-    setFormType('add');
+    setImage_url_base_anime('');
+    setReleaseDate('');
+    setStudio('');
+    setStatus('');
+    setIsAdultRated(false);
+    setTrailer_url_base_anime('');
+  };
+
+  const resetAddSeasonForm = () => {
+    setSelectedAnimeIdForSeason('');
+    setNewSeasonNumber('');
+    setNewSeasonTitle('');
+    setNewSeasonInfo('');
+    setNewSeasonTrailer('');
+    setNewSeasonImage('');
   };
 
   if (!isAdmin) {
@@ -161,206 +226,271 @@ function AdminPage() {
   }
 
   return (
-    <div className="bg-anime-card p-8 rounded-lg shadow-xl border border-anime-border max-w-4xl mx-auto">
-      <h2 className="text-3xl font-bold text-anime-accent text-center mb-8">Admin Dashboard</h2>
+    <div className="bg-anime-card p-8 rounded-lg shadow-xl border border-anime-border max-w-7xl mx-auto my-8">
+      <h2 className="text-4xl font-bold text-anime-accent text-center mb-8">Admin Dashboard</h2>
 
       {message && <p className="text-anime-success text-center mb-4 text-lg">{message}</p>}
       {error && <p className="text-anime-error text-center mb-4 text-lg">{error}</p>}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Admin Counts */}
-        <div className="bg-anime-bg p-6 rounded-lg border border-anime-border shadow-md">
-          <h3 className="text-2xl font-bold text-anime-accent mb-4">Current Stats</h3>
-          {adminCounts ? (
-            <>
-              <p className="text-anime-text-light text-lg mb-2">Total Anime: {adminCounts.total_anime}</p>
-              <h4 className="text-xl font-semibold text-anime-text-light mt-4 mb-2">Anime by Genre:</h4>
-              <ul className="list-disc list-inside text-anime-text-dark">
-                {Object.entries(adminCounts.genres).map(([genre, count]) => (
-                  <li key={genre}>{genre}: {count}</li>
-                ))}
-              </ul>
-              <h4 className="text-xl font-semibold text-anime-text-light mt-4 mb-2">Anime by Season:</h4>
-              <ul className="list-disc list-inside text-anime-text-dark">
-                {Object.entries(adminCounts.seasons).map(([season, count]) => (
-                  <li key={season}>{season}: {count}</li>
-                ))}
-              </ul>
-            </>
-          ) : (
-            <p className="text-anime-text-dark">Loading stats...</p>
-          )}
+      {dataLoading ? (
+        <div className="flex justify-center items-center h-64">
+          <p className="text-anime-accent text-xl">Loading admin data...</p>
         </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
+          {/* Add New Anime Form (UPDATED FIELDS FOR ANIME MODEL) */}
+          <div className="bg-anime-bg p-6 rounded-lg border border-anime-border shadow-md col-span-full md:col-span-1">
+            <h3 className="text-2xl font-bold text-anime-accent mb-4">Add New Anime</h3>
+            <form onSubmit={handleAddAnimeSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="animeName" className="block text-anime-text-light text-sm font-bold mb-1">Anime Name:</label>
+                <input type="text" id="animeName" value={animeName} onChange={(e) => setAnimeName(e.target.value)} required className="w-full p-2 rounded border border-anime-border bg-anime-card text-anime-text-light" />
+              </div>
+              <div>
+                <label htmlFor="genreId" className="block text-anime-text-light text-sm font-bold mb-1">Genre:</label>
+                <select id="genreId" value={genreId} onChange={(e) => setGenreId(e.target.value)} required className="w-full p-2 rounded border border-anime-border bg-anime-card text-anime-text-light">
+                  <option value="">Select a Genre</option>
+                  {genres.map(g => <option key={g.genreId} value={g.genreId}>{g.name} (ID: {g.genreId})</option>)}
+                </select>
+              </div>
+              {/* Removed Location ID, Year, Episodes, Origin as they are not in the Anime model */}
+              <div>
+                <label htmlFor="description" className="block text-anime-text-light text-sm font-bold mb-1">Description:</label>
+                <textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} required className="w-full p-2 rounded border border-anime-border bg-anime-card text-anime-text-light"></textarea>
+              </div>
+              <div>
+                <label htmlFor="image_url_base_anime" className="block text-anime-text-light text-sm font-bold mb-1">Image URL (Optional):</label>
+                <input type="url" id="image_url_base_anime" value={image_url_base_anime} onChange={(e) => setImage_url_base_anime(e.target.value)} className="w-full p-2 rounded border border-anime-border bg-anime-card text-anime-text-light" placeholder="https://example.com/anime.jpg"/>
+              </div>
 
-        {/* Add/Update Anime Form */}
-        <div className="bg-anime-bg p-6 rounded-lg border border-anime-border shadow-md">
-          <h3 className="text-2xl font-bold text-anime-accent mb-4">
-            {formType === 'add' ? 'Add New Anime' : 'Update Anime'}
-          </h3>
-          <div className="mb-4">
-            <button
-              onClick={() => { setFormType('add'); resetForm(); }}
-              className={`mr-2 px-4 py-2 rounded-md font-semibold ${formType === 'add' ? 'bg-anime-accent text-anime-bg' : 'bg-anime-border text-anime-text-light hover:bg-anime-accent-dark'}`}
-            >
-              Add Mode
-            </button>
-            <button
-              onClick={() => setFormType('update')}
-              className={`px-4 py-2 rounded-md font-semibold ${formType === 'update' ? 'bg-anime-accent text-anime-bg' : 'bg-anime-border text-anime-text-light hover:bg-anime-accent-dark'}`}
-            >
-              Update Mode
-            </button>
+              <div>
+                <label htmlFor="releaseDate" className="block text-anime-text-light text-sm font-bold mb-1">Release Date:</label>
+                <input type="date" id="releaseDate" value={releaseDate} onChange={(e) => setReleaseDate(e.target.value)} required className="w-full p-2 rounded border border-anime-border bg-anime-card text-anime-text-light" />
+              </div>
+              <div>
+                <label htmlFor="studio" className="block text-anime-text-light text-sm font-bold mb-1">Studio:</label>
+                <input type="text" id="studio" value={studio} onChange={(e) => setStudio(e.target.value)} required className="w-full p-2 rounded border border-anime-border bg-anime-card text-anime-text-light" placeholder="e.g., Toei Animation"/>
+              </div>
+              <div>
+                <label htmlFor="status" className="block text-anime-text-light text-sm font-bold mb-1">Status:</label>
+                <select id="status" value={status} onChange={(e) => setStatus(e.target.value)} required className="w-full p-2 rounded border border-anime-border bg-anime-card text-anime-text-light">
+                  <option value="">Select Status</option>
+                  <option value="Currently Airing">Currently Airing</option>
+                  <option value="Completed">Completed</option>
+                  <option value="On Hiatus">On Hiatus</option>
+                  <option value="Upcoming">Upcoming</option>
+                </select>
+              </div>
+              <div className="flex items-center">
+                <input type="checkbox" id="isAdultRated" checked={isAdultRated} onChange={(e) => setIsAdultRated(e.target.checked)} className="mr-2 h-4 w-4 text-anime-accent rounded border-gray-300 focus:ring-anime-accent" />
+                <label htmlFor="isAdultRated" className="text-anime-text-light text-sm font-bold">Adult Rated?</label>
+              </div>
+              <div>
+                <label htmlFor="trailer_url_base_anime" className="block text-anime-text-light text-sm font-bold mb-1">Trailer URL (Optional):</label>
+                <input type="url" id="trailer_url_base_anime" value={trailer_url_base_anime} onChange={(e) => setTrailer_url_base_anime(e.target.value)} className="w-full p-2 rounded border border-anime-border bg-anime-card text-anime-text-light" placeholder="http://youtube.com/watch?v=..." />
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-anime-accent hover:bg-anime-accent-dark text-anime-bg font-bold py-2 px-4 rounded transition duration-300 ease-in-out shadow-md hover:shadow-anime-glow"
+                disabled={loading}
+              >
+                {loading ? 'Processing...' : 'Add Anime'}
+              </button>
+            </form>
           </div>
 
-          {formType === 'update' && (
-            <div className="mb-4">
-              <label htmlFor="animeIdToUpdate" className="block text-anime-text-light text-sm font-bold mb-2">
-                Anime ID to Update:
-              </label>
-              <input
-                type="number"
-                id="animeIdToUpdate"
-                value={animeIdToUpdate}
-                onChange={(e) => setAnimeIdToUpdate(e.target.value)}
-                className="shadow appearance-none border border-anime-border rounded w-full py-2 px-3 text-anime-text-light leading-tight focus:outline-none focus:shadow-outline bg-anime-card"
-                placeholder="Enter Anime ID"
-              />
-            </div>
-          )}
-
-          <form onSubmit={handleAnimeSubmit} className="space-y-4">
-            <div>
-              <label htmlFor="title" className="block text-anime-text-light text-sm font-bold mb-1">Title:</label>
-              <input type="text" id="title" value={title} onChange={(e) => setTitle(e.target.value)} required={formType === 'add'} className="w-full p-2 rounded border border-anime-border bg-anime-card text-anime-text-light" />
-            </div>
-            <div>
-              <label htmlFor="genreId" className="block text-anime-text-light text-sm font-bold mb-1">Genre ID:</label>
-              <select id="genreId" value={genreId} onChange={(e) => setGenreId(e.target.value)} required={formType === 'add'} className="w-full p-2 rounded border border-anime-border bg-anime-card text-anime-text-light">
-                <option value="">Select a Genre</option>
-                {genres.map(g => <option key={g.genreId} value={g.genreId}>{g.name} (ID: {g.genreId})</option>)}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="seasonId" className="block text-anime-text-light text-sm font-bold mb-1">Season ID:</label>
-              <select id="seasonId" value={seasonId} onChange={(e) => setSeasonId(e.target.value)} required={formType === 'add'} className="w-full p-2 rounded border border-anime-border bg-anime-card text-anime-text-light">
-                <option value="">Select a Season</option>
-                {seasons.map(s => <option key={s.seasonId} value={s.seasonId}>{s.name} (ID: {s.seasonId})</option>)}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="locationId" className="block text-anime-text-light text-sm font-bold mb-1">Location ID:</label>
-              <input type="number" id="locationId" value={locationId} onChange={(e) => setLocationId(e.target.value)} required={formType === 'add'} className="w-full p-2 rounded border border-anime-border bg-anime-card text-anime-text-light" />
-            </div>
-            <div>
-              <label htmlFor="year" className="block text-anime-text-light text-sm font-bold mb-1">Year:</label>
-              <input type="number" id="year" value={year} onChange={(e) => setYear(e.target.value)} required={formType === 'add'} className="w-full p-2 rounded border border-anime-border bg-anime-card text-anime-text-light" />
-            </div>
-            <div>
-              <label htmlFor="episodes" className="block text-anime-text-light text-sm font-bold mb-1">Episodes:</label>
-              <input type="number" id="episodes" value={episodes} onChange={(e) => setEpisodes(e.target.value)} required={formType === 'add'} className="w-full p-2 rounded border border-anime-border bg-anime-card text-anime-text-light" />
-            </div>
-            <div>
-              <label htmlFor="description" className="block text-anime-text-light text-sm font-bold mb-1">Description:</label>
-              <textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} className="w-full p-2 rounded border border-anime-border bg-anime-card text-anime-text-light"></textarea>
-            </div>
-            <div>
-              <label htmlFor="imageUrl" className="block text-anime-text-light text-sm font-bold mb-1">Image URL:</label>
-              <input type="text" id="imageUrl" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} className="w-full p-2 rounded border border-anime-border bg-anime-card text-anime-text-light" />
-            </div>
-            <button
-              type="submit"
-              className="w-full bg-anime-accent hover:bg-anime-accent-dark text-anime-bg font-bold py-2 px-4 rounded transition duration-300 ease-in-out shadow-md hover:shadow-anime-glow"
-              disabled={loading}
-            >
-              {loading ? 'Processing...' : (formType === 'add' ? 'Add Anime' : 'Update Anime')}
-            </button>
-            {formType === 'update' && (
+          {/* Delete Anime Form */}
+          <div className="bg-anime-bg p-6 rounded-lg border border-anime-border shadow-md col-span-full md:col-span-1">
+            <h3 className="text-2xl font-bold text-anime-accent mb-4">Delete Anime by ID</h3>
+            <form onSubmit={(e) => { e.preventDefault(); handleDeleteAnime(deleteAnimeId); }} className="space-y-4">
+              <div>
+                <label htmlFor="deleteAnimeId" className="block text-anime-text-light text-sm font-bold mb-1">Anime ID to Delete:</label>
+                <input
+                  type="number"
+                  id="deleteAnimeId"
+                  value={deleteAnimeId}
+                  onChange={(e) => setDeleteAnimeId(e.target.value)}
+                  required
+                  className="w-full p-2 rounded border border-anime-border bg-anime-card text-anime-text-light"
+                  placeholder="Enter Anime ID"
+                />
+              </div>
               <button
-                type="button"
-                onClick={resetForm}
-                className="w-full mt-2 bg-anime-border hover:bg-anime-text-dark text-anime-text-light font-bold py-2 px-4 rounded transition duration-300 ease-in-out shadow-md"
+                type="submit"
+                className="w-full bg-anime-error hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out shadow-md"
+                disabled={loading}
               >
-                Reset Form
+                {loading ? 'Deleting...' : 'Delete Anime'}
               </button>
-            )}
-          </form>
-        </div>
+            </form>
+          </div>
 
-        {/* Delete Anime Form */}
-        <div className="bg-anime-bg p-6 rounded-lg border border-anime-border shadow-md">
-          <h3 className="text-2xl font-bold text-anime-accent mb-4">Delete Anime</h3>
-          <form onSubmit={handleDeleteAnime} className="space-y-4">
-            <div>
-              <label htmlFor="deleteAnimeId" className="block text-anime-text-light text-sm font-bold mb-1">Anime ID to Delete:</label>
-              <input
-                type="number"
-                id="deleteAnimeId"
-                value={deleteAnimeId}
-                onChange={(e) => setDeleteAnimeId(e.target.value)}
-                required
-                className="w-full p-2 rounded border border-anime-border bg-anime-card text-anime-text-light"
-                placeholder="Enter Anime ID"
-              />
-            </div>
-            <button
-              type="submit"
-              className="w-full bg-anime-error hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition duration-300 ease-in-out shadow-md"
-              disabled={loading}
-            >
-              {loading ? 'Deleting...' : 'Delete Anime'}
-            </button>
-          </form>
-        </div>
+          {/* Add Genre Form */}
+          <div className="bg-anime-bg p-6 rounded-lg border border-anime-border shadow-md">
+            <h3 className="text-2xl font-bold text-anime-accent mb-4">Add New Genre</h3>
+            <form onSubmit={handleAddGenre} className="space-y-4">
+              <div>
+                <label htmlFor="newGenreName" className="block text-anime-text-light text-sm font-bold mb-1">Genre Name:</label>
+                <input
+                  type="text"
+                  id="newGenreName"
+                  value={newGenreName}
+                  onChange={(e) => setNewGenreName(e.target.value)}
+                  required
+                  className="w-full p-2 rounded border border-anime-border bg-anime-card text-anime-text-light"
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full bg-anime-accent hover:bg-anime-accent-dark text-anime-bg font-bold py-2 px-4 rounded transition duration-300 ease-in-out shadow-md hover:shadow-anime-glow"
+                disabled={loading}
+              >
+                {loading ? 'Adding...' : 'Add Genre'}
+              </button>
+            </form>
+          </div>
 
-        {/* Add Genre Form */}
-        <div className="bg-anime-bg p-6 rounded-lg border border-anime-border shadow-md">
-          <h3 className="text-2xl font-bold text-anime-accent mb-4">Add New Genre</h3>
-          <form onSubmit={handleAddGenre} className="space-y-4">
-            <div>
-              <label htmlFor="newGenreName" className="block text-anime-text-light text-sm font-bold mb-1">Genre Name:</label>
-              <input
-                type="text"
-                id="newGenreName"
-                value={newGenreName}
-                onChange={(e) => setNewGenreName(e.target.value)}
-                required
-                className="w-full p-2 rounded border border-anime-border bg-anime-card text-anime-text-light"
-              />
-            </div>
-            <button
-              type="submit"
-              className="w-full bg-anime-accent hover:bg-anime-accent-dark text-anime-bg font-bold py-2 px-4 rounded transition duration-300 ease-in-out shadow-md hover:shadow-anime-glow"
-              disabled={loading}
-            >
-              {loading ? 'Adding...' : 'Add Genre'}
-            </button>
-          </form>
+          {/* Add Season Form */}
+          <div className="bg-anime-bg p-6 rounded-lg border border-anime-border shadow-md">
+            <h3 className="text-2xl font-bold text-anime-accent mb-4">Add New Season</h3>
+            <form onSubmit={handleAddSeason} className="space-y-4">
+              <div>
+                <label htmlFor="animeIdForSeason" className="block text-anime-text-light text-sm font-bold mb-1">Link to Anime:</label>
+                <select
+                  id="animeIdForSeason"
+                  value={selectedAnimeIdForSeason}
+                  onChange={(e) => setSelectedAnimeIdForSeason(e.target.value)}
+                  required
+                  className="w-full p-2 rounded border border-anime-border bg-anime-card text-anime-text-light"
+                >
+                  <option value="">Select an Anime</option>
+                  {allAnime.map(anime => (
+                    <option key={anime.animeId} value={anime.animeId}>{anime.animeName}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="newSeasonNumber" className="block text-anime-text-light text-sm font-bold mb-1">Season Number:</label>
+                <input
+                  type="number"
+                  id="newSeasonNumber"
+                  value={newSeasonNumber}
+                  onChange={(e) => setNewSeasonNumber(e.target.value)}
+                  required
+                  min="1"
+                  className="w-full p-2 rounded border border-anime-border bg-anime-card text-anime-text-light"
+                  placeholder="e.g., 1, 2, 3"
+                />
+              </div>
+              <div>
+                <label htmlFor="newSeasonTitle" className="block text-anime-text-light text-sm font-bold mb-1">Season Title (e.g., "The Final Arc"):</label>
+                <input
+                  type="text"
+                  id="newSeasonTitle"
+                  value={newSeasonTitle}
+                  onChange={(e) => setNewSeasonTitle(e.target.value)}
+                  required
+                  className="w-full p-2 rounded border border-anime-border bg-anime-card text-anime-text-light"
+                  placeholder="e.g., Season 1, The Final Arc"
+                />
+              </div>
+              <div>
+                <label htmlFor="newSeasonInfo" className="block text-anime-text-light text-sm font-bold mb-1">Season Info/Description (Optional):</label>
+                <textarea
+                  id="newSeasonInfo"
+                  value={newSeasonInfo}
+                  onChange={(e) => setNewSeasonInfo(e.target.value)}
+                  className="w-full p-2 rounded border border-anime-border bg-anime-card text-anime-text-light"
+                  placeholder="Brief description of the season"
+                ></textarea>
+              </div>
+              <div>
+                <label htmlFor="newSeasonTrailer" className="block text-anime-text-light text-sm font-bold mb-1">Season Trailer URL (Optional):</label>
+                <input
+                  type="url"
+                  id="newSeasonTrailer"
+                  value={newSeasonTrailer}
+                  onChange={(e) => setNewSeasonTrailer(e.target.value)}
+                  className="w-full p-2 rounded border border-anime-border bg-anime-card text-anime-text-light"
+                  placeholder="https://youtube.com/watch?v=..."
+                />
+              </div>
+              <div>
+                <label htmlFor="newSeasonImage" className="block text-anime-text-light text-sm font-bold mb-1">Season Image URL (Optional):</label>
+                <input
+                  type="url"
+                  id="newSeasonImage"
+                  value={newSeasonImage}
+                  onChange={(e) => setNewSeasonImage(e.target.value)}
+                  className="w-full p-2 rounded border border-anime-border bg-anime-card text-anime-text-light"
+                  placeholder="https://example.com/season_image.jpg"
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full bg-anime-accent hover:bg-anime-accent-dark text-anime-bg font-bold py-2 px-4 rounded transition duration-300 ease-in-out shadow-md hover:shadow-anime-glow"
+                disabled={loading}
+              >
+                {loading ? 'Adding...' : 'Add Season'}
+              </button>
+            </form>
+          </div>
         </div>
+      )}
 
-        {/* Add Season Form */}
-        <div className="bg-anime-bg p-6 rounded-lg border border-anime-border shadow-md">
-          <h3 className="text-2xl font-bold text-anime-accent mb-4">Add New Season</h3>
-          <form onSubmit={handleAddSeason} className="space-y-4">
-            <div>
-              <label htmlFor="newSeasonName" className="block text-anime-text-light text-sm font-bold mb-1">Season Name:</label>
-              <input
-                type="text"
-                id="newSeasonName"
-                value={newSeasonName}
-                onChange={(e) => setNewSeasonName(e.target.value)}
-                required
-                className="w-full p-2 rounded border border-anime-border bg-anime-card text-anime-text-light"
-              />
-            </div>
-            <button
-              type="submit"
-              className="w-full bg-anime-accent hover:bg-anime-accent-dark text-anime-bg font-bold py-2 px-4 rounded transition duration-300 ease-in-out shadow-md hover:shadow-anime-glow"
-              disabled={loading}
-            >
-              {loading ? 'Adding...' : 'Add Season'}
-            </button>
-          </form>
-        </div>
+      {/* List All Anime Section */}
+      <div className="bg-anime-bg p-6 rounded-lg border border-anime-border shadow-md mt-8">
+        <h3 className="text-2xl font-bold text-anime-accent mb-4">All Anime</h3>
+        {allAnime.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-anime-border text-anime-text-light">
+              <thead className="bg-anime-sub-card">
+                <tr>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-anime-accent uppercase tracking-wider">ID</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-anime-accent uppercase tracking-wider">Title</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-anime-accent uppercase tracking-wider">Genre</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-anime-accent uppercase tracking-wider">Season</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-anime-accent uppercase tracking-wider">Year</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-anime-accent uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-anime-border">
+                {allAnime.map((anime) => (
+                  <tr key={anime.animeId} className="hover:bg-anime-card-light">
+                    <td className="px-6 py-4 whitespace-nowrap">{anime.animeId}</td>
+                    <td className="px-6 py-4 whitespace-nowrap font-medium text-anime-text-dark">{anime.animeName}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {/* Displaying first genre if available for simplicity in table */}
+                      {anime.genres && anime.genres.length > 0 ? (genres.find(g => g.genreId === anime.genres[0])?.name || 'N/A') : 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                       {/* Displaying first season if available for simplicity in table */}
+                       {anime.seasons && anime.seasons.length > 0 ? (seasons.find(s => s.seasonId === anime.seasons[0])?.name || 'N/A') : 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">{new Date(anime.releaseDate).getFullYear() || 'N/A'}</td> {/* Extract year from releaseDate */}
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          if (window.confirm(`Are you sure you want to delete "${anime.animeName}" (ID: ${anime.animeId})?`)) {
+                            handleDeleteAnime(anime.animeId);
+                          }
+                        }}
+                        className="text-anime-error hover:text-red-700 transition duration-150 ease-in-out"
+                        disabled={loading}
+                      >
+                        {loading && deleteAnimeId === anime.animeId.toString() ? 'Deleting...' : 'Delete'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p className="text-anime-text-dark">No anime found. Add some using the form above!</p>
+        )}
       </div>
     </div>
   );

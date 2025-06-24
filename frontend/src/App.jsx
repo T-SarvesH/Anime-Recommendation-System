@@ -26,7 +26,7 @@ function App() {
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/all-anime" element={<BrowseAnimePage />} />
-            <Route path="/anime/:animeName" element={<AnimeDetailPage />} />
+            <Route path="/anime/details/:animeName" element={<AnimeDetailPage />} />
             <Route path="/admin" element={<AdminPage />} />
 
             <Route path="*" element={<p className="text-center text-anime-error text-2xl my-12">404: Page Not Found</p>} />
