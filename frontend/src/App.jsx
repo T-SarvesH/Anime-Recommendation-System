@@ -10,6 +10,7 @@ import SignupPage from './pages/SignupPage';
 import LoginPage from './pages/LoginPage';
 import AnimeDetailPage from './pages/AnimeDetail'; // Make sure this component is correctly named and exported
 import AdminPage from './pages/AdminPage';
+import BrowseAnimePage from './pages/BrowseAnime'
 import { AuthProvider } from './context/AuthContext'; // Ensure this is imported
 
 function App() {
@@ -24,8 +25,8 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/signup" element={<SignupPage />} />
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/anime/details/:animeName" element={<AnimeDetailPage />} />
-            {/* Removed: <Route path="/browse" element={<BrowseAnimePage />} /> */}
+            <Route path="/all-anime" element={<BrowseAnimePage />} />
+            <Route path="/anime/:animeName" element={<AnimeDetailPage />} />
             <Route path="/admin" element={<AdminPage />} />
 
             <Route path="*" element={<p className="text-center text-anime-error text-2xl my-12">404: Page Not Found</p>} />

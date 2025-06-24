@@ -25,12 +25,13 @@ export const getUserProfile = async (userId) => {
   return fetchData(`${API_BASE_URL}/user/${userId}`);
 };
 
-export const getAnimeDetails = async (animeName) => {
-  return fetchData(`${API_BASE_URL}/anime/details/${encodeURIComponent(animeName)}`);
-};
 
 export const getAllAnime = async () => {
   return fetchData(`${API_BASE_URL}/anime/all`);
+};
+
+export const getAnimeDetails = async (animeName) => {
+  return fetchData(`${API_BASE_URL}/anime/${encodeURIComponent(animeName)}`);
 };
 
 export const loginUser = async (credentials) => {

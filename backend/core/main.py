@@ -73,43 +73,9 @@ async def get_user_info(user_id: int, db: AsyncSession = Depends(get_db)):
     return userInfobj
     
 """ Anime APIs are declared here """
-#Return specific anime Info
-@app.get("/anime/{anime_name}", response_model=AnimeGet, status_code=status.HTTP_200_OK)
-async def get_anime_info(anime_name: str, db: AsyncSession = Depends(get_db)):
-    
-    proc = await db.execute(select(Anime).where(Anime.animeName == anime_name))
-    query_result = proc.scalars().first()
-    
-    if query_result is None: 
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Anime {anime_name} not found")
-
-    genre_ids = query_result.genres
-    genre_list = await db.execute(select(Genre.name).where(Genre.id.in_(genre_ids)))
-    genre_list = genre_list.scalars().all()
-
-    season_nos = query_result.seasons
-    season_list = await db.execute(select(Season).where(Season.seasonNumber.in_(season_nos)))
-    season_list = season_list.scalars().all()
-
-    animeGetObj = AnimeGet(
-
-        animeId = query_result.animeId,
-        animeName = query_result.animeName,
-        genres = genre_list,
-        is_adult_rated = query_result.is_adult_rated,
-        is_running = query_result.is_running,
-        releaseDate = query_result.releaseDate,
-        seasons = season_list,
-        description = query_result.description,
-        image_url_base_anime = query_result.image_url_base_anime,
-        trailer_url_base_anime = query_result.trailer_url_base_anime,
-        studio = query_result.studio,
-    )
-
-    return animeGetObj
 
 #Return the newest 5 animes as default
-@app.get("/anime/newest-5")
+@app.get("/newest-5-anime")
 async def get_top_5(db: AsyncSession = Depends(get_db)):
     
     query = "SELECT * FROM anime ORDER BY releaseDate DESC LIMIT 5"
@@ -158,6 +124,64 @@ async def get_top_rated(db: AsyncSession = Depends(get_db)) -> dict:
 
     return dict
 
+#Get all anime
+@app.get("/anime/all", status_code=status.HTTP_200_OK)
+async def get_all_anime(db: AsyncSession = Depends(get_db)):
+
+    query = await db.execute(select(Anime))
+    results = query.scalars().all()
+
+    print(results)
+    if results is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No Anime found")
+    list_of_animes = []
+    
+    for result in results:
+        list_of_animes.append(
+
+            browseAnime(
+                animeName=result.animeName,
+                image_url_base_anime=result.image_url_base_anime,
+                animeId=result.animeId,
+            )
+        )
+    return list_of_animes
+
+#Get specific anime Info
+@app.get("/anime/{anime_name}", response_model=AnimeGet, status_code=status.HTTP_200_OK)
+async def get_anime_info(anime_name: str, db: AsyncSession = Depends(get_db)):
+    
+    proc = await db.execute(select(Anime).where(Anime.animeName == anime_name))
+    query_result = proc.scalars().first()
+    
+    if query_result is None: 
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Anime {anime_name} not found")
+
+    genre_ids = query_result.genres
+    genre_list = await db.execute(select(Genre.name).where(Genre.genreId.in_(genre_ids)))
+    genre_list = genre_list.scalars().all()
+
+    season_nos = query_result.seasons
+    season_list = await db.execute(select(Season).where(Season.seasonNumber.in_(season_nos)))
+    season_list = season_list.scalars().all()
+
+    animeGetObj = AnimeGet(
+
+        animeId = query_result.animeId,
+        animeName = query_result.animeName,
+        genres = genre_list,
+        is_adult_rated = query_result.is_adult_rated,
+        is_running = query_result.is_running,
+        releaseDate = query_result.releaseDate,
+        #seasons = season_list,
+        description = query_result.description,
+        image_url_base_anime = query_result.image_url_base_anime,
+        trailer_url_base_anime = query_result.trailer_url_base_anime,
+        studio = query_result.studio,
+    )
+
+    return animeGetObj
+
 #Adding a new user on the site
 @app.post("/signup", status_code=status.HTTP_200_OK)
 async def get_user_info(user: UserBasicCreate, db: AsyncSession = Depends(get_db)):
@@ -196,6 +220,21 @@ async def get_user_info(user: UserBasicCreate, db: AsyncSession = Depends(get_db
     
     return {"message": f"User {user.userName} created successfully and welcome to this Anime Recommendation system"}
 
+#For user login
+@app.post("/login", response_model=loginSuccess)
+async def login(credentials: userLogin, db: AsyncSession = Depends(get_db)):
+
+    user_query = await db.execute(select(User).filter((User.userName == credentials.userName_or_email) | (User.email == credentials.userName_or_email)))
+
+    user = user_query.scalars().first()
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect username or email", headers={"WWW-Authenticate": "Bearer"},)
+
+    if not password_verifier(credentials.password, user.hashedPassword):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password", headers={"WWW-Authenticate": "Bearer"},)
+
+    return loginSuccess(userId=user.userId, userName=user.userName, email=user.email)
 #Recommendation model output to be displayed on the recommendation dashboard
 @app.get("/{user_id}/recommendation_dashboard")
 async def recommendations(user_id: int, db: AsyncSession = Depends(get_db)):

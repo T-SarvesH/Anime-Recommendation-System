@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, EmailStr, HttpUrl, ConfigDict
 from typing import List, Optional
 from datetime import datetime
-
+from .models import Season
 #Database Tables
 class LocationTable(BaseModel):
     locationId: int
@@ -78,14 +78,14 @@ class AnimeCreate(BaseModel):
 class AnimeGet(BaseModel):
     animeId: int
     animeName: str
-    genres: List[GenreTable]
-    seasons: List[SeasonsTable]
+    genres: List[str]
+    #seasons: List[SeasonsTable]
     is_adult_rated: bool = False
     is_running: bool = True
     releaseDate: datetime
     description: Optional[str] = Field(None, max_length=500)
-    image_url_base_anime: Optional[HttpUrl] = None
-    trailer_url_base_anime: Optional[HttpUrl] = None
+    image_url_base_anime: Optional[str] = None
+    trailer_url_base_anime: Optional[str] = None
     studio: Optional[str] = Field(None, max_length=255)
     model_config = ConfigDict(from_attributes=True)
 
@@ -160,4 +160,19 @@ class genreCreate(BaseModel):
     genreId: int
     name: str = Field(..., max_length=100)
 
+class userLogin(BaseModel):
+    userName_or_email: str
+    password: str
+
+class loginSuccess(BaseModel):
+    userId: int
+    userName: str
+    email: str
+    message: str = "Login Successful"
+
+class browseAnime(BaseModel):
+    animeId: int
+    animeName: str
+    image_url_base_anime: Optional[str]
+    model_config = ConfigDict(from_attributes=True)
 # ------------- END OF MODELS FOR 1st VERSION ------------

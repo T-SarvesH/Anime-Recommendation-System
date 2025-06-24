@@ -17,8 +17,8 @@ function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await loginUser({ username_or_email: usernameOrEmail, password });
-      login(response.user_id, response.username);
+      const response = await loginUser({ userName_or_email: usernameOrEmail, password: password });
+      login(response.userId, response.userName);
       navigate('/');
     } catch (err) {
       setError(err.message || 'Login failed. Please check your credentials.');
