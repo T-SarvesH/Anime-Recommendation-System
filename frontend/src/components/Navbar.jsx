@@ -12,7 +12,7 @@ function Navbar() {
           Anime Nexus
         </Link>
         <div className="flex-grow flex justify-end space-x-4 mt-2 md:mt-0">
-          <Link to="/" className="text-anime-text-light hover:text-anime-accent-dark transition duration-200">
+          <Link to="/get_recommendations" className="text-anime-text-light hover:text-anime-accent-dark transition duration-200">
             Recommendations
           </Link>
           <Link to="/all-anime" className="text-anime-text-light hover:text-anime-accent-dark transition duration-200">

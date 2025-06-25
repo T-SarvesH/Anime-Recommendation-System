@@ -18,7 +18,7 @@ async function fetchData(url, options = {}) {
 }
 
 export const getRecommendations = async (userId) => {
-  return fetchData(`${API_BASE_URL}/anime/recommendations/${userId}`);
+  return fetchData(`${API_BASE_URL}/get_recommendations/${userId}`);
 };
 
 export const getUserProfile = async (userId) => {

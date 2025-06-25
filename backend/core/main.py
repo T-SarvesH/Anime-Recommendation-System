@@ -9,6 +9,7 @@ from .utils import password_verifier, argon2_pwd_hasher, generate_uuid
 from dotenv import load_dotenv
 import os
 import json
+from recommendation_model.main_ml_model import main_recommendation_model
 
 #Testing if application is working
 app = FastAPI(
@@ -234,10 +235,28 @@ async def login(credentials: userLogin, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect password", headers={"WWW-Authenticate": "Bearer"},)
 
     return loginSuccess(userId=user.userId, userName=user.userName, email=user.email)
+
 #Recommendation model output to be displayed on the recommendation dashboard
-@app.get("/{user_id}/recommendation_dashboard")
+@app.get("/get_recommendations/{user_id}", status_code=status.HTTP_200_OK)
 async def recommendations(user_id: int, db: AsyncSession = Depends(get_db)):
-    pass
+    
+    recommendation_list = main_recommendation_model(user_id)
+    animeSet = set()
+
+    for recommendation in recommendation_list:
+        for item in recommendation:
+            animeSet.add(item)
+
+    animeSet = list(animeSet)
+    animeList = []
+
+    for item in animeSet:
+
+        query = await db.execute(select(Anime).where(Anime.animeId == item))
+        result = query.scalars().first()
+        animeList.append(result)
+
+    return {"recommendations": animeList, "message": f"Great Recommendations are generated for {user_id}"}
 
 #For admin side APIs where ADMIN_ID is fetched from env to prevent unauthorized access
 @app.post("/add_season", status_code=status.HTTP_200_OK)
@@ -322,4 +341,44 @@ async def get_states(countryName: str, db: AsyncSession = Depends(get_db)):
 async def get_states(db: AsyncSession = Depends(get_db)):
 
     return ["India"]
+
+
+@app.get('/add_from_json', status_code=status.HTTP_200_OK)
+async def add_from_json(db: AsyncSession = Depends(get_db)):
+
+    path = "/home/sarvesh/Anime-Recommendation-System/backend/core/ratings.json"
+
+    Dict = {}
+    rating_list = []
+
+    with open(path, 'r') as r:
+        ratings = json.load(r)
     
+    for rating in ratings:
+        Dict[rating['ratingId']] = rating
+    
+    for rating in Dict.values():
+        
+        date_list = [ datetime.strptime(rating['created_at'], '%Y-%m-%d'), datetime.strptime(rating['updated_at'], '%Y-%m-%d')]
+        ratingObj = Rating(
+            
+            userId = rating['userId'],
+            animeId = rating['animeId'],
+            score = rating['score'],
+            review_text = rating['review_text'],
+            created_at = date_list[0],
+            updated_at = date_list[1],
+        )
+
+        rating_list.append(ratingObj)
+    
+    try:
+
+        db.add_all(rating_list)
+        await db.commit()
+        await db.refresh(rating_list)
+
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Rating couldn't be added {e}")
+    
+    return {'message': 'All Ratings are added successfully'}

@@ -3,7 +3,7 @@ import pandas as pd
 import os
 import numpy as np
 import sys 
-from engine import sync_engine
+from .engine import sync_engine
 
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.append(PROJECT_ROOT)
