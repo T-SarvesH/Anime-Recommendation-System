@@ -24,15 +24,15 @@ def association_recommender(user_id, users_df, anime_df, number_of_recommendatio
     te_array = te.fit(transactions).transform(transactions)
     transactions_df = pd.DataFrame(te_array, columns=te.columns_)
 
-    frequent_itemsets = apriori(transactions_df, min_support=0.7, use_colnames=True)
+    frequent_itemsets = apriori(transactions_df, min_support=0.4, use_colnames=True)
 
-    if not frequent_itemsets:
+    if frequent_itemsets.empty:
         print(f"No item sets found")
         return []
     
-    rules = association_rules(frequent_itemsets, min_threshold=0.7, metric="Confidence")
+    rules = association_rules(frequent_itemsets, min_threshold=0.4, metric="Confidence")
 
-    if not rules:
+    if rules.empty:
         print(f"No rules generated")
         return []
 
@@ -40,7 +40,7 @@ def association_recommender(user_id, users_df, anime_df, number_of_recommendatio
     #Get list of anime watched by the required user
     user_watched_animes = users_df[users_df['userId'] == user_id]['watchedAnime']
 
-    if not user_watched_animes:
+    if user_watched_animes.empty:
         print(f"User with {user_id} has not watched any animes yet")
         return []
 

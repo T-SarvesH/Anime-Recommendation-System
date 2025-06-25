@@ -16,7 +16,7 @@ django.setup()
 
 def collaborative_recommender(user_id, ratings_df, anime_df, number_of_recommendations):
     
-    print(f"Generating Recommendation for User using ITCF technique based on cosine similarity")
+    print(f"Generating Recommendation for User using IBCF technique based on cosine similarity")
 
     """Converts ratings df into a matrix where columns are userIds and columns are animeIds
     Hence a cell of this matrix gives us the score given by the particular userId to the particular anime
@@ -42,7 +42,7 @@ def collaborative_recommender(user_id, ratings_df, anime_df, number_of_recommend
     #Returns anime ids that a particluar user has already rated
     user_rated_animes = ratings_df[ratings_df['userId']==user_id]['animeId']
 
-    if not user_rated_animes:
+    if user_rated_animes.empty:
         print(f"{user_id} has not rated any animes yet")
         return []
     

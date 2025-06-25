@@ -14,10 +14,13 @@ django.setup()
 
 def content_based_recommender(user_id, ratings_df, anime_df, number_of_recommendations):
     
-    anime_df['genre'] = anime_df['genre'].fillna('')
+    anime_df['genres_for_tfidf'] = anime_df['genres'].apply(
+        lambda x: ' '.join(map(str, x)) if isinstance(x, list) and len(x) > 0 else ''
+    )
+    #anime_df['genres'] = anime_df['genres'].fillna('')
 
     tfid_vector = TfidfVectorizer(stop_words='english', token_pattern=r'(?u)\b\w+\b')
-    anime_genre_matrix = tfid_vector.fit_transform(anime_df['genre'])
+    anime_genre_matrix = tfid_vector.fit_transform(anime_df['genres_for_tfidf'])
 
     anime_genre_df = pd.DataFrame(anime_genre_matrix.toarray(), index=anime_df['animeId'], columns = tfid_vector.get_feature_names_out())
 

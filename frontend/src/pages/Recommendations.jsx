@@ -3,18 +3,14 @@ import { getRecommendations } from '../api';
 import { useAuth } from '../context/AuthContext'; 
 
 const RecommendationPage = () => {
-  const { userId, username } = useAuth(); // Get userId and username from AuthContext
+  const { userId, username } = useAuth(); 
   const [recommendedAnimeDetails, setRecommendedAnimeDetails] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  /**
-   * Fetches anime recommendations for the authenticated user.
-   * This function now directly uses the 'userId' from the AuthContext.
-   */
   const fetchRecommendations = useCallback(async () => {
-    if (!userId) { // If no user is logged in, do not attempt to fetch
-      setRecommendedAnimeDetails([]); // Clear any previous recommendations
+    if (!userId) { 
+      setRecommendedAnimeDetails([]); 
       setError("Please log in to view your personalized recommendations.");
       setLoading(false);
       return;
@@ -23,7 +19,6 @@ const RecommendationPage = () => {
     setLoading(true);
     setError(null);
     try {
-      // Use the 'userId' from AuthContext directly for the API call
       const response = await getRecommendations(userId); 
       
       const recommendationsData = response.recommendations || [];
@@ -37,72 +32,93 @@ const RecommendationPage = () => {
     } finally {
       setLoading(false); 
     }
-  }, [userId]); // Dependency array now only includes userId. The callback re-creates if userId changes.
+  }, [userId]); 
 
-  // Effect hook to trigger fetching recommendations when the component mounts or userId changes.
   useEffect(() => {
-    fetchRecommendations(); // Call the memoized function without parameters.
-  }, [fetchRecommendations]); // Dependency: re-run if fetchRecommendations (which depends on userId) changes.
+    fetchRecommendations(); 
+  }, [fetchRecommendations]); 
 
   return (
-    <div className="bg-anime-card p-8 rounded-lg shadow-xl border border-anime-border max-w-7xl mx-auto my-8 font-inter">
-      <h2 className="text-4xl font-bold text-anime-accent text-center mb-8">Anime Recommendations</h2>
+    // Main container div: Consistent with previous, but ensuring less overall height if content allows.
+    <div className="bg-anime-card p-8 rounded-lg shadow-2xl border border-anime-border max-w-7xl mx-auto my-10 font-inter">
+      <h2 className="text-5xl font-extrabold text-anime-accent text-center mb-10 tracking-wider">
+        Your Anime Nexus
+      </h2>
 
-      {/* Conditional rendering for logged-in vs. logged-out users */}
       {!userId ? (
-        <div className="text-center p-6 bg-anime-bg rounded-lg border border-anime-border mb-8">
-          <p className="text-anime-text-light text-xl">
-            {error || "Log in to see your personalized anime recommendations!"}
+        <div className="text-center p-8 bg-anime-bg rounded-lg border border-anime-border shadow-inner mb-10">
+          <p className="text-anime-text-light text-2xl font-semibold">
+            {error || "Log in to unlock your personalized anime recommendations!"}
           </p>
         </div>
       ) : (
         <>
-          <div className="text-center p-6 bg-anime-bg rounded-lg border border-anime-border mb-8">
-            <h3 className="text-2xl font-bold text-anime-accent mb-4">
-              Recommendations for {username || `User ID: ${userId}`}
+          <div className="text-center p-8 bg-anime-bg rounded-lg border border-anime-border shadow-inner mb-10">
+            <h3 className="text-3xl font-bold text-anime-accent mb-3">
+              Recommendations for <span className="text-anime-text-light">{username || `User ID: ${userId}`}</span>
             </h3>
-            <p className="text-anime-text-light">
-              Here are anime recommendations tailored for you.
+            <p className="text-anime-text-dark text-lg">
+              Dive into a world of anime tailored just for you.
             </p>
-            {error && <p className="text-anime-error mt-4">{error}</p>}
+            {error && <p className="text-anime-error mt-6 text-lg">{error}</p>}
           </div>
 
           <div className="mb-8">
-            <h3 className="text-2xl font-bold text-anime-accent mb-4">Your Recommendations</h3>
-            {loading && <p className="text-anime-text-light text-center">Loading recommendations...</p>}
+            <h3 className="text-3xl font-bold text-anime-accent mb-6 text-center">Your Curated Picks</h3>
+            {loading && <p className="text-anime-text-light text-center text-xl animate-pulse">Loading amazing recommendations...</p>}
             {!loading && recommendedAnimeDetails.length === 0 && !error && (
-              <p className="text-anime-text-light text-center">No recommendations found for you. Try rating more anime or ensure data is available.</p>
+              <p className="text-anime-text-light text-center text-xl">
+                No recommendations found for you yet. Rate more anime to help us understand your tastes!
+              </p>
             )}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {/* Grid layout for anime recommendation cards - adjusted card rounding */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
               {recommendedAnimeDetails.map((anime, index) => (
                 anime ? (
                   <div 
                     key={anime.animeId || index} 
-                    className="bg-anime-bg p-4 rounded-lg border border-anime-border shadow-md flex flex-col items-center text-center 
-                               transform hover:scale-105 transition duration-300 ease-in-out"
+                    className="bg-anime-bg p-4 rounded-lg border border-anime-border shadow-lg flex flex-col items-center text-center 
+                               transform hover:scale-105 hover:shadow-xl hover:border-anime-accent-dark transition duration-300 ease-in-out cursor-pointer"
                   >
-                    <img
-                      src={anime.image_url_base_anime || `https://placehold.co/150x200/4a5568/edf2f7?text=No+Image`}
-                      alt={anime.animeName || 'Anime Image'}
-                      onError={(e) => { e.target.onerror = null; e.target.src="https://placehold.co/150x200/4a5568/edf2f7?text=No+Image"; }}
-                      className="w-36 h-48 object-cover rounded-lg mb-3 shadow-lg"
-                    />
-                    <h4 className="text-xl font-semibold text-anime-text-dark mb-1 truncate w-full px-2">{anime.animeName || 'Unknown Anime'}</h4>
-                    <p className="text-anime-text-light text-sm italic">{anime.studio || 'N/A'}</p>
-                    <p className="text-anime-text-light text-sm line-clamp-3 overflow-hidden text-ellipsis px-2">
-                      {anime.description ? `${anime.description.substring(0, 150)}${anime.description.length > 150 ? '...' : ''}` : 'No description available.'}
+                    {/* Image container to enforce a square aspect ratio for the image area */}
+                    <div className="relative w-44 h-44 flex-shrink-0 mb-4 rounded-md shadow-md border border-anime-border overflow-hidden">
+                      <img
+                        src={anime.image_url_base_anime || `https://placehold.co/176x176/16213E/E94560?text=No+Image`}
+                        alt={anime.animeName || 'Anime Image'}
+                        onError={(e) => { 
+                          e.target.onerror = null; 
+                          // Placeholder image with square dimensions
+                          e.target.src=`https://placehold.co/176x176/16213E/E94560?text=Image+Unavailable`; 
+                        }}
+                        className="absolute inset-0 w-full h-full object-cover" // Image fills and covers the square container
+                      />
+                    </div>
+
+                    <h4 className="text-2xl font-bold text-anime-accent mb-2 truncate w-full px-2">{anime.animeName || 'Unknown Anime'}</h4>
+                    <p className="text-anime-text-light text-sm italic mb-2">{anime.studio || 'N/A'}</p>
+                    <p className="text-anime-text-light text-sm line-clamp-3 overflow-hidden text-ellipsis px-2 mb-3">
+                      {anime.description ? `${anime.description.substring(0, 120)}${anime.description.length > 120 ? '...' : ''}` : 'No description available.'}
                     </p>
-                    <div className="mt-2 text-sm text-anime-text-light">
-                      <p><strong>Genre(s):</strong> {anime.genres && anime.genres.length > 0 ? anime.genres.join(', ') : 'N/A'}</p>
-                      <p><strong>Release:</strong> {anime.releaseDate ? new Date(anime.releaseDate).getFullYear() : 'N/A'}</p>
+                    <div className="mt-auto text-sm text-anime-text-dark w-full">
+                      <p className="bg-anime-border rounded-sm px-3 py-1 mb-1 inline-block"> 
+                        <strong>Genres:</strong> {anime.genres && anime.genres.length > 0 ? anime.genres.map(g => `G${g}`).join(', ') : 'N/A'}
+                      </p>
+                      <p className="bg-anime-border rounded-sm px-3 py-1 inline-block ml-2"> 
+                        <strong>Release:</strong> {anime.releaseDate ? new Date(anime.releaseDate).getFullYear() : 'N/A'}
+                      </p>
                     </div>
                   </div>
                 ) : (
+                  // Placeholder card for any null entries, maintaining grid integrity
                   <div 
                     key={`placeholder-${index}`} 
-                    className="bg-anime-bg p-4 rounded-lg border border-anime-border shadow-md flex flex-col items-center justify-center text-center text-anime-text-light min-h-[200px]"
+                    className="bg-anime-bg p-4 rounded-lg border border-anime-border shadow-md flex flex-col items-center justify-center text-center text-anime-text-light min-h-[300px]"
                   >
-                    <p>No recommendation available at this slot.</p>
+                    {/* Placeholder image will also be square now */}
+                    <div className="relative w-44 h-44 flex-shrink-0 mb-4 rounded-md shadow-md border border-anime-border overflow-hidden flex items-center justify-center">
+                        <span className="text-anime-text-dark text-center">No Image</span>
+                    </div>
+                    <p className="text-lg opacity-70">No recommendation available at this slot.</p>
                   </div>
                 )
               ))}

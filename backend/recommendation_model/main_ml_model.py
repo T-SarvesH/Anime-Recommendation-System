@@ -19,14 +19,11 @@ def main_recommendation_model(user_id: int):
     if all([df is not None for df in [ratings, anime, users, locations, genres, seasons]]):
 
         preprocessed_df, processed_anime_df, processed_users_df, processed_genres_df, processed_seasons_df = process_data(ratings, anime, users, locations, genres, seasons)
-
-        print(f"{preprocessed_df.info()}")
-        print(f"{preprocessed_df.shape}")
     
     #get the recommendation o/p
     recom1 = collaborative_recommender(user_id, ratings, processed_anime_df, 5)
     recom2 = association_recommender(user_id, processed_users_df, processed_anime_df, 5)
-    recom3 = content_based_recommender(user_id, processed_anime_df, ratings, 5)
+    recom3 = content_based_recommender(user_id, ratings, processed_anime_df, 5)
 
     return [recom1, recom2, recom3]
 
