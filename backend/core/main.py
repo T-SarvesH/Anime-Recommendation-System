@@ -20,6 +20,7 @@ app = FastAPI(
 )
 
 #For CORS
+#Defined origins from where req would be sent / recieved
 
 origins = [
 
@@ -256,7 +257,60 @@ async def recommendations(user_id: int, db: AsyncSession = Depends(get_db)):
         result = query.scalars().first()
         animeList.append(result)
 
-    return {"recommendations": animeList, "message": f"Great Recommendations are generated for {user_id}"}
+    #For ratings distribution
+    query2 = await db.execute(select(Rating.score, func.count(Rating.score).label("ratingCount")).group_by(Rating.score).order_by(Rating.score))
+    result2 = query2.all()
+
+    ratings_distrib = {}
+
+    for ratingScore, ratingCount in result2:
+        ratings_distrib[ratingScore] = ratingCount
+    
+    for key , values in ratings_distrib.items():
+        print(f"{key} ----> {values}")
+    
+    print()
+    #For genre_anime_distribution
+    query3 = await db.execute(select(Anime.genres))
+    result3 = query3.scalars().all()
+
+    genre_anime_distribution = {}
+
+    for result in result3:
+        
+        for id in result:
+
+            if id in genre_anime_distribution:
+                genre_anime_distribution[id] += 1
+            else:
+                genre_anime_distribution[id] = 1
+
+    genre_anime_distributionList = []
+    for id, count in genre_anime_distribution.items():
+        newQuery = await db.execute(select(Genre.name).where(Genre.genreId == id))
+        result = newQuery.scalars().all()
+
+        for name in result:
+            genre_anime_distributionList.append({name: count})
+    
+    sql_query_text = "SELECT \"animeId\", \"animeName\", \"releaseDate\", COUNT(CASE WHEN score > 5 THEN 1 ELSE NULL END) * 100.0 / COUNT(score) AS \"ratio\", \"image_url_base_anime\" from anime join ratings using(\"animeId\") group by \"animeId\" having count(score) > 0 order by ratio desc limit 1;"
+
+    proc = await db.execute(text(sql_query_text))
+    result = proc.all()
+
+    if result is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Anime not found")
+    
+
+    dict = {
+
+        "animeName" : result[0][1],
+        "releaseDate": result[0][2],
+        "image_url_base_anime": result[0][4],
+        "Positivity Percentage": result[0][3],
+    }
+
+    return {"recommendations": animeList, "ratings_distribution": ratings_distrib, "Genre_anime_distrib": genre_anime_distributionList, "most_popular_anime": dict, "message": f"Great Recommendations are generated for {user_id}"}
 
 #For admin side APIs where ADMIN_ID is fetched from env to prevent unauthorized access
 @app.post("/add_season", status_code=status.HTTP_200_OK)
@@ -343,42 +397,42 @@ async def get_states(db: AsyncSession = Depends(get_db)):
     return ["India"]
 
 
-@app.get('/add_from_json', status_code=status.HTTP_200_OK)
-async def add_from_json(db: AsyncSession = Depends(get_db)):
+# @app.get('/add_from_json', status_code=status.HTTP_200_OK)
+# async def add_from_json(db: AsyncSession = Depends(get_db)):
 
-    path = "/home/sarvesh/Anime-Recommendation-System/backend/core/ratings.json"
+#     path = "/home/sarvesh/Anime-Recommendation-System/backend/core/ratings.json"
 
-    Dict = {}
-    rating_list = []
+#     Dict = {}
+#     rating_list = []
 
-    with open(path, 'r') as r:
-        ratings = json.load(r)
+#     with open(path, 'r') as r:
+#         ratings = json.load(r)
     
-    for rating in ratings:
-        Dict[rating['ratingId']] = rating
+#     for rating in ratings:
+#         Dict[rating['ratingId']] = rating
     
-    for rating in Dict.values():
+#     for rating in Dict.values():
         
-        date_list = [ datetime.strptime(rating['created_at'], '%Y-%m-%d'), datetime.strptime(rating['updated_at'], '%Y-%m-%d')]
-        ratingObj = Rating(
+#         date_list = [ datetime.strptime(rating['created_at'], '%Y-%m-%d'), datetime.strptime(rating['updated_at'], '%Y-%m-%d')]
+#         ratingObj = Rating(
             
-            userId = rating['userId'],
-            animeId = rating['animeId'],
-            score = rating['score'],
-            review_text = rating['review_text'],
-            created_at = date_list[0],
-            updated_at = date_list[1],
-        )
+#             userId = rating['userId'],
+#             animeId = rating['animeId'],
+#             score = rating['score'],
+#             review_text = rating['review_text'],
+#             created_at = date_list[0],
+#             updated_at = date_list[1],
+#         )
 
-        rating_list.append(ratingObj)
+#         rating_list.append(ratingObj)
     
-    try:
+#     try:
 
-        db.add_all(rating_list)
-        await db.commit()
-        await db.refresh(rating_list)
+#         db.add_all(rating_list)
+#         await db.commit()
+#         await db.refresh(rating_list)
 
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Rating couldn't be added {e}")
+#     except Exception as e:
+#         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Rating couldn't be added {e}")
     
-    return {'message': 'All Ratings are added successfully'}
+#     return {'message': 'All Ratings are added successfully'}
