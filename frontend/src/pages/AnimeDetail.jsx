@@ -1,18 +1,25 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { getAnimeDetails, rateAnime } from '../api';
+// Import all necessary API functions for list management
+import { 
+  getAnimeDetails, 
+  rateAnime, 
+  getUserProfile, // Assuming getUserProfile returns watchedAnime and watchingAnime
+  addTowatchedList, 
+  addTowatchingList, 
+  removeFromWatched, 
+  removeFromWatching 
+} from '../api'; 
 import { useAuth } from '../context/AuthContext';
 
 // Helper function to convert YouTube watch URL to embed URL
 const getEmbedUrl = (url) => {
     if (!url) return null;
 
-    // Check if it's already an embed URL (e.g., from YouTube or Vimeo)
     if (url.includes('embed/') || url.includes('player.vimeo.com/video/')) {
         return url;
     }
 
-    // Convert YouTube watch URL (e.g., https://www.youtube.com/watch?v=VIDEO_ID)
     const youtubeMatch = url.match(/(?:https?:\/\/)?(?:www\.)?(?:m\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=|embed\/|v\/|)([\w-]{11})(?:\S+)?/);
     if (youtubeMatch && youtubeMatch[1]) {
         return `https://www.youtube.com/embed/${youtubeMatch[1]}?autoplay=0&modestbranding=1&rel=0`;
@@ -31,7 +38,13 @@ function AnimeDetailPage() {
     const [rating, setRating] = useState('');
     const [ratingMessage, setRatingMessage] = useState('');
     const [ratingError, setRatingError] = useState('');
+    
+    // State for anime list status: 'none', 'watching', 'watched'
+    const [animeStatus, setAnimeStatus] = useState('none'); 
+    const [listActionMessage, setListActionMessage] = useState(''); 
+    const [processingListAction, setProcessingListAction] = useState(false); 
 
+    // Fetch anime details
     useEffect(() => {
         const fetchDetails = async () => {
             try {
@@ -50,6 +63,32 @@ function AnimeDetailPage() {
         }
     }, [animeName]);
 
+    // Fetch user's anime lists and update status when user or anime data changes
+    useEffect(() => {
+        const fetchUserAnimeLists = async () => {
+            if (!userId || !anime?.animeId) {
+                setAnimeStatus('none'); 
+                return;
+            }
+            try {
+                const userProfile = await getUserProfile(userId); 
+                const watched = userProfile.watchedAnime || [];
+                const watching = userProfile.watchingAnime || [];
+
+                if (watched.includes(anime.animeId)) {
+                    setAnimeStatus('watched');
+                } else if (watching.includes(anime.animeId)) {
+                    setAnimeStatus('watching');
+                } else {
+                    setAnimeStatus('none');
+                }
+            } catch (err) {
+                console.error("Failed to fetch user lists from profile:", err);
+            }
+        };
+        fetchUserAnimeLists();
+    }, [userId, anime?.animeId]); 
+
     const handleRatingSubmit = async (e) => {
         e.preventDefault();
         setRatingMessage('');
@@ -61,8 +100,8 @@ function AnimeDetailPage() {
         }
         const score = parseInt(rating);
 
-        if (isNaN(score) || score < 1 || score > 5) {
-            setRatingError('Rating must be between 1 and 5.');
+        if (isNaN(score) || score < 1 || score > 10) { 
+            setRatingError('Rating must be between 1 and 10.');
             return;
         }
         if (!anime?.animeId) {
@@ -75,16 +114,55 @@ function AnimeDetailPage() {
                 userId: userId,
                 animeId: anime.animeId,
                 score: score,
+                review_text: "User rated via Anime Nexus" 
             });
-            setRatingMessage(`Rated ${response.score}/5 successfully!`);
-            // Optionally update average rating if API returns it
+            setRatingMessage(`Rated ${response.score}/10 successfully!`); 
+            setRating(''); 
         } catch (err) {
             console.error('Rating submission error:', err);
             setRatingError(err.message || 'Failed to submit rating.');
-        } finally {
-            setRating('');
         }
     };
+
+    // --- Simplified List Management Handlers ---
+
+    // This handler will now be called for both initial adds and "moves"
+    const handleAddToList = async (listType) => {
+        setProcessingListAction(true);
+        setListActionMessage('');
+        try {
+            if (listType === 'watching') {
+                await addTowatchingList({ userId, animeId: anime.animeId });
+            } else if (listType === 'watched') {
+                await addTowatchedList({ userId, animeId: anime.animeId });
+            }
+            setAnimeStatus(listType); // Update UI state to the new list
+            setListActionMessage(`Anime added to ${listType} list!`);
+        } catch (err) {
+            setListActionMessage(`Failed to add: ${err.message}`);
+        } finally {
+            setProcessingListAction(false);
+        }
+    };
+
+    const handleRemoveFromList = async (listType) => {
+        setProcessingListAction(true);
+        setListActionMessage('');
+        try {
+            if (listType === 'watching') {
+                await removeFromWatching({ userId, animeId: anime.animeId });
+            } else if (listType === 'watched') {
+                await removeFromWatched({ userId, animeId: anime.animeId });
+            }
+            setAnimeStatus('none'); // Update UI state to 'none'
+            setListActionMessage(`Anime removed from ${listType} list.`);
+        } catch (err) {
+            setListActionMessage(`Failed to remove: ${err.message}`);
+        } finally {
+            setProcessingListAction(false);
+        }
+    };
+
 
     if (loading) {
         return (
@@ -149,11 +227,11 @@ function AnimeDetailPage() {
                         )}
 
                         {/* Text Information - Now in a sleek grid format */}
-                        <div className="mt-8 mb-8 p-6 bg-anime-sub-card rounded-lg border border-anime-border"> {/* Added padding, background, border to contain info */}
-                            <h3 className="text-2xl font-semibold text-anime-accent mb-4">Details</h3> {/* New heading for this section */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 text-lg"> {/* Grid layout */}
-                                <div className="flex items-start"> {/* Use flex to align label and value */}
-                                    <span className="font-semibold text-anime-accent mr-2 min-w-[100px]">Genre:</span> {/* min-w for alignment */}
+                        <div className="mt-8 mb-8 p-6 bg-anime-sub-card rounded-lg border border-anime-border"> 
+                            <h3 className="text-2xl font-semibold text-anime-accent mb-4">Details</h3> 
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 text-lg"> 
+                                <div className="flex items-start"> 
+                                    <span className="font-semibold text-anime-accent mr-2 min-w-[100px]">Genre:</span> 
                                     <span className="flex-grow">
                                         {anime.genres && anime.genres.length > 0
                                             ? anime.genres.map((g) => g.name).join(', ')
@@ -208,7 +286,7 @@ function AnimeDetailPage() {
                         </div>
 
                         {/* Description */}
-                        <div className="mt-8"> {/* Adjusted mt-8 for spacing after the new info box */}
+                        <div className="mt-8"> 
                             <h3 className="text-2xl font-semibold text-anime-accent mb-2">
                                 Description
                             </h3>
@@ -218,9 +296,87 @@ function AnimeDetailPage() {
                         </div>
                     </div>
 
-                    {/* Right Column: Rating */}
+                    {/* Right Column: List Management & Rating */}
                     <div className="md:w-1/3 flex flex-col justify-start">
-                        <div className="p-6 bg-anime-sub-card rounded-lg shadow-inner border border-anime-border">
+                        {/* List Management Section */}
+                        {userId && ( // Only show if user is logged in
+                            <div className="bg-anime-sub-card p-6 rounded-lg border border-anime-border shadow-inner mb-6">
+                                <h3 className="text-xl font-semibold text-anime-accent mb-4 text-center">Manage My List</h3>
+                                <div className="flex flex-wrap justify-center gap-3 mb-4">
+                                    {/* Conditionally render buttons based on animeStatus */}
+                                    {animeStatus === 'none' && (
+                                        <>
+                                            <button
+                                                onClick={() => handleAddToList('watching')}
+                                                className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                disabled={processingListAction}
+                                            >
+                                                {processingListAction ? 'Adding...' : 'Add to Watching'}
+                                            </button>
+                                            <button
+                                                onClick={() => handleAddToList('watched')}
+                                                className="px-4 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                disabled={processingListAction}
+                                            >
+                                                {processingListAction ? 'Adding...' : 'Add to Watched'}
+                                            </button>
+                                        </>
+                                    )}
+
+                                    {/* Buttons for 'watching' status */}
+                                    {animeStatus === 'watching' && (
+                                        <>
+                                            <button
+                                                onClick={() => handleAddToList('watched')} // Backend handles moving from watching to watched
+                                                className="px-4 py-2 bg-green-600 text-white font-semibold rounded-md hover:bg-green-700 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                disabled={processingListAction}
+                                            >
+                                                {processingListAction ? 'Moving...' : 'Mark as Watched'}
+                                            </button>
+                                            <button
+                                                onClick={() => handleRemoveFromList('watching')}
+                                                className="px-4 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                disabled={processingListAction}
+                                            >
+                                                {processingListAction ? 'Removing...' : 'Remove from Watching'}
+                                            </button>
+                                        </>
+                                    )}
+
+                                    {/* Buttons for 'watched' status */}
+                                    {animeStatus === 'watched' && (
+                                        <>
+                                            <button
+                                                onClick={() => handleAddToList('watching')} // Backend handles moving from watched to watching
+                                                className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                disabled={processingListAction}
+                                            >
+                                                {processingListAction ? 'Moving...' : 'Move to Watching'}
+                                            </button>
+                                            <button
+                                                onClick={() => handleRemoveFromList('watched')}
+                                                className="px-4 py-2 bg-red-600 text-white font-semibold rounded-md hover:bg-red-700 transition duration-300 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                disabled={processingListAction}
+                                            >
+                                                {processingListAction ? 'Removing...' : 'Remove from Watched'}
+                                            </button>
+                                        </>
+                                    )}
+                                </div>
+                                {listActionMessage && (
+                                    <p className={`text-center text-sm mt-2 ${listActionMessage.includes('Failed') ? 'text-anime-error' : 'text-green-400'}`}>
+                                        {listActionMessage}
+                                    </p>
+                                )}
+                                <p className="text-anime-text-light text-sm text-center mt-3">
+                                    Current Status: <span className="font-semibold capitalize">{animeStatus}</span>
+                                </p>
+                            </div>
+                        )}
+
+
+                        {/* Rating Section */}
+                        <div className="p-6 bg-anime-sub-card rounded-lg shadow-inner border border-anime-border mt-6 md:mt-0"> 
                             <h3 className="text-xl font-semibold text-anime-accent mb-4 text-center">
                                 Rate this Anime
                             </h3>
@@ -239,10 +395,10 @@ function AnimeDetailPage() {
                                     <input
                                         type="number"
                                         min="1"
-                                        max="5"
+                                        max="10" 
                                         value={rating}
                                         onChange={(e) => setRating(e.target.value)}
-                                        placeholder="1-5"
+                                        placeholder="1-10" 
                                         className="w-full p-2 rounded-md bg-anime-background border border-anime-border
                                text-anime-text-dark focus:outline-none focus:ring-2 focus:ring-anime-accent"
                                         required

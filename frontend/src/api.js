@@ -151,3 +151,63 @@ export const getCountries = async() => {
 
   return fetchData(`${API_BASE_URL}/get_countries`);
 }
+
+export const addTowatchedList = async(animeListUpdate) => {
+
+  return fetchData(`${API_BASE_URL}/add-to-watched-list/`, {
+
+    method: 'PATCH',
+    headers:{
+
+      "Content-Type": "application/json",
+    },
+
+    body: JSON.stringify(animeListUpdate),
+
+  });
+}
+
+export const addTowatchingList = async(animeListUpdate) => {
+
+  return fetchData(`${API_BASE_URL}/add-to-watching-list/`, {
+
+    method: 'PATCH',
+    headers:{
+
+      "Content-Type": "application/json",
+    },
+
+    body: JSON.stringify(animeListUpdate),
+
+  });
+}
+
+export const removeFromWatched = async(animeListUpdate) => {
+
+  return fetchData(`${API_BASE_URL}/remove-from-watched-list/`, {
+
+    method: 'PATCH',
+    headers:{
+
+      "Content-Type": "application/json",
+    },
+
+    body: JSON.stringify(animeListUpdate),
+
+  });
+}
+
+export const removeFromWatching = async(animeListUpdate) => {
+
+  return fetchData(`${API_BASE_URL}/remove-from-watching-list/`, {
+
+    method: 'PATCH',
+    headers:{
+
+      "Content-Type": "application/json",
+    },
+
+    body: JSON.stringify(animeListUpdate),
+
+  });
+}

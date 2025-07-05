@@ -397,42 +397,121 @@ async def get_states(db: AsyncSession = Depends(get_db)):
     return ["India"]
 
 
-# @app.get('/add_from_json', status_code=status.HTTP_200_OK)
-# async def add_from_json(db: AsyncSession = Depends(get_db)):
+#APIs for watching and watched anime
 
-#     path = "/home/sarvesh/Anime-Recommendation-System/backend/core/ratings.json"
+@app.patch("/add-to-watched-list/", status_code=status.HTTP_200_OK)
+async def add_to_watched_list(animeListUpdate: AnimeListUpdate, db: AsyncSession = Depends(get_db)):
 
-#     Dict = {}
-#     rating_list = []
+    query = await db.execute(select(User).where(User.userId == animeListUpdate.userId))
+    results = query.scalars().first()
 
-#     with open(path, 'r') as r:
-#         ratings = json.load(r)
+    # watchedList = results.watchedAnime if results.watchedAnime is not None else []
+    # watchingList = results.watchingAnime if results.watchingAnime is not None else []
+
+    #If anime already in watchedList
+    if animeListUpdate.animeId in results.watchedAnime:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Anime already in watched list")
     
-#     for rating in ratings:
-#         Dict[rating['ratingId']] = rating
-    
-#     for rating in Dict.values():
-        
-#         date_list = [ datetime.strptime(rating['created_at'], '%Y-%m-%d'), datetime.strptime(rating['updated_at'], '%Y-%m-%d')]
-#         ratingObj = Rating(
-            
-#             userId = rating['userId'],
-#             animeId = rating['animeId'],
-#             score = rating['score'],
-#             review_text = rating['review_text'],
-#             created_at = date_list[0],
-#             updated_at = date_list[1],
-#         )
+    #If anime in watchingList, we are basically removing from watchingList and adding to watchedList
+    if animeListUpdate.animeId in results.watchingAnime:
+        results.watchingAnime.remove(animeListUpdate.animeId)
 
-#         rating_list.append(ratingObj)
-    
-#     try:
+    results.watchedAnime.append(animeListUpdate.animeId)
+    # results.watchedAnime = watchedList
 
-#         db.add_all(rating_list)
-#         await db.commit()
-#         await db.refresh(rating_list)
+    try:
+        db.add(results)
+        await db.commit()
+        await db.refresh(results)
 
-#     except Exception as e:
-#         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Rating couldn't be added {e}")
+    except Exception as e:
+        print(f"Error adding to watched list for user: {e}") # Log error for debugging
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Anime couldn't be added to watchedlist")
     
-#     return {'message': 'All Ratings are added successfully'}
+    return {'message': "Anime added successfully to watch List"}
+
+@app.patch("/add-to-watching-list/", status_code=status.HTTP_200_OK)
+async def add_to_watching_list(animeListUpdate: AnimeListUpdate, db: AsyncSession = Depends(get_db)):
+
+    query = await db.execute(select(User).where(User.userId == animeListUpdate.userId))
+    results = query.scalars().first()
+
+    # watchedList = results.watchedAnime if results.watchedAnime is not None else []
+    # watchingList = results.watchingAnime if results.watchingAnime is not None else []
+
+    #If anime already in watchedList
+    if animeListUpdate.animeId in results.watchingAnime:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Anime already in watching list")
+    
+    #If anime in watchingList, we are basically removing from watchingList and adding to watchedList
+    if animeListUpdate.animeId in results.watchedAnime:
+        results.watchedAnime.remove(animeListUpdate.animeId)
+
+    results.watchingAnime.append(animeListUpdate.animeId)
+    # results.watchingAnime = watchingList
+
+    try:
+        db.add(results)
+        await db.commit()
+        await db.refresh(results)
+
+    except Exception as e:
+        print(f"Error adding to watching list for user {animeListUpdate.userId}: {e}") # Log error for debugging
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Anime couldn't be added to watching list")
+    
+    return {'message': "Anime added successfully to watching List"}
+
+
+@app.patch("/remove-from-watched-list/", status_code=status.HTTP_200_OK)
+async def remove_from_watched_list(animeListUpdate: AnimeListUpdate, db: AsyncSession = Depends(get_db)):
+
+    query = await db.execute(select(User).where(User.userId == animeListUpdate.userId))
+    results = query.scalars().first()
+
+    # watchedList = results.watchedAnime if results.watchedAnime is not None else []
+
+    #If anime already in watchedList
+    if animeListUpdate.animeId in results.watchedAnime:
+        results.watchedAnime.remove(animeListUpdate.animeId)
+        # results.watchedAnime = watchedList
+    
+    else:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Anime not in watched list")
+
+    try:
+        db.add(results)
+        await db.commit()
+        await db.refresh(results)
+
+    except Exception as e:
+        print(f"Error adding to watching list for user {animeListUpdate.userId}: {e}") # Log error for debugging
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Anime couldn't be removed to watching list")
+    
+    return {'message': "Anime removed successfully from watched List"}
+
+
+@app.patch("/remove-from-watching-list/", status_code=status.HTTP_200_OK)
+async def remove_from_watching_list(animeListUpdate: AnimeListUpdate, db: AsyncSession = Depends(get_db)):
+
+    query = await db.execute(select(User).where(User.userId == animeListUpdate.userId))
+    results = query.scalars().first()
+
+    # watchingList = results.watchingAnime if results.watchingAnime is not None else []
+
+    #If anime already in watchedList
+    if animeListUpdate.animeId in results.watchingAnime:
+       results.watchingAnime.remove(animeListUpdate.animeId)
+    
+    else:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Anime not in watching list")
+
+    try:
+        db.add(results)
+        await db.commit()
+        await db.refresh(results)
+
+    except Exception as e:
+        print(f"Error adding to watching list for user {animeListUpdate.userId}: {e}") # Log error for debugging
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Anime couldn't be removed to watching list")
+    
+    return {'message': "Anime removed successfully from watching List"}

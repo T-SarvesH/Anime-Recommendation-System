@@ -198,3 +198,5 @@ cython_debug/
 
 #Json files in core
 /backend/core/*.json
+
+/backend/core/add_json.txt

@@ -184,3 +184,8 @@ class SeasonsCreate(BaseModel):
     seasonTrailer: Optional[str]
     seasonImage : Optional[str]
     model_config = ConfigDict(from_attributes=True)
+
+class AnimeListUpdate(BaseModel):
+    userId: int
+    animeId: int
+    model_config = ConfigDict(from_attributes=True)
