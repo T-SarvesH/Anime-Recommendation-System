@@ -13,6 +13,7 @@ import AdminPage from './pages/AdminPage';
 import BrowseAnimePage from './pages/BrowseAnime'
 import { AuthProvider } from './context/AuthContext'; // Ensure this is imported
 import RecommendationPage from './pages/Recommendations';
+import UserProfilePage from './pages/UserProfile';
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
             <Route path="/anime/details/:animeName" element={<AnimeDetailPage />} />
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/get_recommendations/" element={<RecommendationPage />}/>
+            <Route path="/profile/:userId" element={<UserProfilePage />}/>
             <Route path="*" element={<p className="text-center text-anime-error text-2xl my-12">404: Page Not Found</p>} />
           </Routes>
 

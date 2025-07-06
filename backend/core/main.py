@@ -515,3 +515,59 @@ async def remove_from_watching_list(animeListUpdate: AnimeListUpdate, db: AsyncS
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Anime couldn't be removed to watching list")
     
     return {'message': "Anime removed successfully from watching List"}
+
+
+#User Profile API
+@app.get('/profile/{user_id}', status_code=status.HTTP_200_OK)
+async def user_profile(user_id: int, db: AsyncSession = Depends(get_db)):
+
+    query = await db.execute(select(User).where(User.userId == user_id))
+    result = query.scalars().first()
+
+    if result is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"User not found")
+    
+
+    query2 = await db.execute(select(Anime).where(Anime.animeId.in_(result.watchedAnime)))
+    result2 = query2.scalars().all()
+
+    watchedList = []
+
+    for item in result2:
+
+        watchedList.append(
+
+            AnimesForUserProfile(
+
+                animeId=item.animeId,
+                animeName=item.animeName,
+                image_url_base_anime=item.image_url_base_anime,
+            )
+        )
+
+    query3 = await db.execute(select(Anime).where(Anime.animeId.in_(result.watchingAnime)))
+    result3 = query3.scalars().all()
+
+    watchingList = []
+    for item in result3:
+        watchingList.append(
+
+            AnimesForUserProfile(
+
+                animeId=item.animeId,
+                animeName=item.animeName,
+                image_url_base_anime=item.image_url_base_anime,
+            )
+        )
+
+    userProfileObj = UserProfile(
+
+        userId = result.userId,
+        userName = result.userName,
+        email = result.email,
+        profilePicture=result.profilePicture,
+        watchedAnime=watchedList,
+        watchingAnime=watchingList,
+    )
+
+    return {"UserProfile": userProfileObj, "message": "User profile fetched successfully"}

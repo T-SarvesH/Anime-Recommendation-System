@@ -1,56 +1,57 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
-
+import React, { createContext, useContext, useState, useEffect } from 'react';
+// Removed loginUser and signupUser imports from AuthContext
+// AuthContext should not directly call API functions for login/signup
+// It manages the authentication state based on results from LoginPage/SignupPage
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userId, setUserId] = useState(null);
-  const [username, setUsername] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const adminId = -2147483648
-  // Load user data from localStorage on initial load
-  useEffect(() => {
-    const storedUserId = localStorage.getItem('userId');
-    const storedUsername = localStorage.getItem('userName');
-    const storedIsAdmin = localStorage.getItem('isAdmin') === 'true'; // Stored as string
+  const [loadingAuth, setLoadingAuth] = useState(true); 
 
-    if (storedUserId) {
-      setUserId(parseInt(storedUserId, 10)); // Convert back to number
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const storedUserId = localStorage.getItem('userId');
+    if (token && storedUserId) {
+      setIsAuthenticated(true);
+      setUserId(parseInt(storedUserId)); 
     }
-    if (storedUsername) {
-      setUsername(storedUsername);
-    }
-    setIsAdmin(storedIsAdmin);
+    setLoadingAuth(false); 
   }, []);
 
-  const login = (id, name) => {
-    setUserId(id);
-    setUsername(name);
+  // This 'login' function in AuthContext now only updates state
+  // It expects to be called *after* a successful API login
+  const login = (id, username) => { // It's fine for it to take id and username
+    // No API calls here
     localStorage.setItem('userId', id);
-    localStorage.setItem('username', name);
-    // Assuming admin user ID is 1. Adjust as needed.
-    if (id == adminId) { 
-      setIsAdmin(true);
-      localStorage.setItem('isAdmin', 'true');
-    } else {
-      setIsAdmin(false);
-      localStorage.setItem('isAdmin', 'false');
-    }
+    // You might want to store the token here if not done in LoginPage
+    // localStorage.setItem('token', token); 
+    setIsAuthenticated(true);
+    setUserId(id);
+    // You might also want to store username if needed globally
+  };
+
+  // The 'register' function in AuthContext should also only update state
+  // For simplicity, we'll keep it as a placeholder, as the actual API call
+  // will happen in SignupPage.jsx
+  const register = (id, username) => {
+    // This function might not be strictly needed if registration doesn't auto-login
+    // or if you handle post-registration logic directly in SignupPage
+    console.log("AuthContext register called, user:", id, username);
   };
 
   const logout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('userId');
+    setIsAuthenticated(false);
     setUserId(null);
-    setUsername(null);
-    setIsAdmin(false);
-    localStorage.clear(); // Clear all auth related storage
   };
 
   return (
-    <AuthContext.Provider value={{ userId, username, isAdmin, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, userId, login, register, logout, loadingAuth }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => {
-  return useContext(AuthContext);
-};
+export const useAuth = () => useContext(AuthContext);

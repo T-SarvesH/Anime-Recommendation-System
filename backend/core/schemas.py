@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, EmailStr, HttpUrl, ConfigDict
+from pydantic import BaseModel, Field, EmailStr, HttpUrl, ConfigDict, field_validator, model_validator,computed_field
 from typing import List, Optional
 from datetime import datetime
 from .models import Season
@@ -188,4 +188,32 @@ class SeasonsCreate(BaseModel):
 class AnimeListUpdate(BaseModel):
     userId: int
     animeId: int
+    model_config = ConfigDict(from_attributes=True)
+
+
+#For User Profile
+class AnimesForUserProfile(BaseModel):
+    animeId: int
+    animeName: str
+    image_url_base_anime: Optional[str] = None
+
+class UserProfile(BaseModel):
+    userId: int
+    userName: str
+    email: EmailStr
+    profilePicture: Optional[str] = None
+    watchedAnime: List[AnimesForUserProfile] = Field([])
+    watchingAnime: List[AnimesForUserProfile] = Field([])
+
+    @computed_field
+    @property
+    def anime_watched_count(self) -> int:
+        return len(self.watchedAnime)
+
+    @computed_field
+    @property
+    def anime_watching_count(self) -> int:
+        return len(self.watchingAnime)
+    
+
     model_config = ConfigDict(from_attributes=True)

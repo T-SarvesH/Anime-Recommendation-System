@@ -3,26 +3,34 @@ const API_BASE_URL = 'http://127.0.0.1:8001'; // Make sure this matches your Fas
 async function fetchData(url, options = {}) {
   try {
     const response = await fetch(url, options);
-    const data = await response.json();
+    const data = await response.json(); // Always try to parse JSON response
 
     if (!response.ok) {
-      // FastAPI typically returns a 'detail' field for HTTPExceptions
-      const errorMessage = data.detail || response.statusText;
+      let errorMessage = response.statusText || 'An unknown error occurred';
+      if (data && data.detail) {
+        // If FastAPI provides a 'detail' field, use it.
+        // For 422 errors, 'detail' is often a list of validation errors.
+        if (Array.isArray(data.detail)) {
+          errorMessage = data.detail.map(err => {
+            const loc = err.loc ? err.loc.join('.') : 'unknown_location';
+            const msg = err.msg || 'no message';
+            return `${loc}: ${msg}`;
+          }).join('; ');
+        } else if (typeof data.detail === 'string') {
+          errorMessage = data.detail;
+        }
+      }
       throw new Error(errorMessage);
     }
     return data;
   } catch (error) {
     console.error('API call error:', error);
-    throw error; // Re-throw to be caught by the calling component
+    throw error; 
   }
 }
 
 export const getRecommendations = async (userId) => {
   return fetchData(`${API_BASE_URL}/get_recommendations/${userId}`);
-};
-
-export const getUserProfile = async (userId) => {
-  return fetchData(`${API_BASE_URL}/user/${userId}`);
 };
 
 
@@ -210,4 +218,10 @@ export const removeFromWatching = async(animeListUpdate) => {
     body: JSON.stringify(animeListUpdate),
 
   });
+}
+
+export const getUserProfile = async(user_id) => {
+
+  return fetchData(`${API_BASE_URL}/profile/${user_id}`);
+  
 }

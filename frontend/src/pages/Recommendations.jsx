@@ -96,7 +96,7 @@ const RecommendationPage = () => {
           {/* User-specific recommendations header */}
           <div className="text-center p-8 bg-anime-bg rounded-lg border border-anime-border shadow-inner mb-10">
             <h3 className="text-3xl font-bold text-anime-accent mb-3">
-              Recommendations for <span className="text-anime-text-light">{username || `User ID: ${userId}`}</span>
+              Recommendations for you
             </h3>
             <p className="text-anime-text-dark text-lg">
               Dive into a world of anime tailored just for you.

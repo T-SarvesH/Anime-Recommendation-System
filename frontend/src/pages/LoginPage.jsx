@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { loginUser } from '../api';
+import { loginUser } from '../api'; // Keep loginUser import here
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -9,7 +9,7 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login } = useAuth(); // Get the 'login' function from AuthContext
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -17,10 +17,19 @@ function LoginPage() {
     setLoading(true);
 
     try {
+      // Call the API login function directly
       const response = await loginUser({ userName_or_email: usernameOrEmail, password: password });
-      login(response.userId, response.userName);
-      navigate('/');
+      
+      // If API login is successful, then update AuthContext state
+      // Pass userId and userName from the successful response
+      login(response.userId, response.userName); 
+      
+      // Store the token received from the backend
+      localStorage.setItem('token', response.access_token); // Assuming backend returns access_token
+
+      navigate('/'); // Redirect to home page
     } catch (err) {
+      // The improved fetchData in api.js should give a clear error message here
       setError(err.message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
